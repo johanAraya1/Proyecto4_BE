@@ -17,6 +17,6 @@ const loginUser = async (email, password) => {
     if (error || !data || data.length === 0)
         throw new Error('Invalid credentials');
     // Return a mock token for now
-    return 'mock-token';
+    return 'Access completed';
 };
 exports.loginUser = loginUser;
