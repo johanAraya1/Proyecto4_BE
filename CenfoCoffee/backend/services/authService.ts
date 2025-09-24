@@ -1,6 +1,5 @@
 import { supabase } from '../utils/supabaseClient';
 import { User } from '../models/User';
-import { v4 as uuidv4 } from 'uuid';
 
 export const registerUser = async (
   email: string,
@@ -9,11 +8,10 @@ export const registerUser = async (
   role: 'admin' | 'player' = 'player',
   elo: number = 1000 // default elo for players
 ): Promise<User> => {
-  const id = uuidv4();
-  const user: User = { id, email, password, name, role, elo: role === 'player' ? elo : undefined };
-  const { error } = await supabase.from('users').insert([user]);
+  const user: Omit<User, 'id'> = { email, password, name, role, elo: role === 'player' ? elo : undefined };
+  const { data, error } = await supabase.from('users').insert([user]).select();
   if (error) throw new Error(error.message);
-  return user;
+  return data[0] as User;
 };
 
 export const loginUser = async (email: string, password: string): Promise<string> => {
