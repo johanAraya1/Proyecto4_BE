@@ -8,12 +8,19 @@ const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const baseRoutes_1 = __importDefault(require("./routes/baseRoutes"));
+const telemetryRoutes_1 = __importDefault(require("./routes/telemetryRoutes"));
+const telemetryMiddleware_1 = require("./middleware/telemetryMiddleware");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+// Middleware de telemetría (debe ir antes de las rutas)
+app.use(telemetryMiddleware_1.telemetryMiddleware);
 app.use('/', baseRoutes_1.default);
 app.use('/auth', authRoutes_1.default);
+app.use('/telemetry', telemetryRoutes_1.default);
+// Middleware de manejo de errores (debe ir al final)
+app.use(telemetryMiddleware_1.errorTelemetryMiddleware);
 const http_1 = require("http");
 const ws_1 = require("ws");
 const gameController_1 = require("./controllers/gameController");

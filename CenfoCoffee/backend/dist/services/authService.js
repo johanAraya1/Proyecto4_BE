@@ -15,7 +15,12 @@ const loginUser = async (email, password) => {
     const { data, error } = await supabaseClient_1.supabase.from('users').select('*').eq('email', email).eq('password', password);
     if (error || !data || data.length === 0)
         throw new Error('Invalid credentials');
-    // Return a mock token for now
-    return 'mock-token';
+    const user = data[0];
+    const { password: _, ...userWithoutPassword } = user;
+    // Return both token and user info (excluding password)
+    return {
+        token: 'mock-token',
+        user: userWithoutPassword
+    };
 };
 exports.loginUser = loginUser;
