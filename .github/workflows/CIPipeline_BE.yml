@@ -1,0 +1,56 @@
+name: CI - Backend
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Check if package.json exists
+        id: check-package
+        run: |
+          if [ -f package.json ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        if: steps.check-package.outputs.found == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Cache node modules
+        if: steps.check-package.outputs.found == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        if: steps.check-package.outputs.found == 'true'
+        run: npm install --legacy-peer-deps
+
+      - name: Run lint
+        if: steps.check-package.outputs.found == 'true'
+        run: npm run lint
+
+      - name: Run tests
+        if: steps.check-package.outputs.found == 'true'
+        run: npm test -- --passWithNoTests
+
+      - name: Skip message
+        if: steps.check-package.outputs.found == 'false'
+        run: echo "⚠️ No se encontró package.json, se saltan los pasos de CI."
