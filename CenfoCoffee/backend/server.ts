@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import baseRoutes from './routes/baseRoutes';
 import telemetryRoutes from './routes/telemetryRoutes';
+import rankingRoutes from './routes/rankingRoutes';
 import { telemetryMiddleware, errorTelemetryMiddleware } from './middleware/telemetryMiddleware';
 
 dotenv.config();
@@ -18,6 +19,7 @@ app.use(telemetryMiddleware);
 app.use('/', baseRoutes);
 app.use('/auth', authRoutes);
 app.use('/telemetry', telemetryRoutes);
+app.use('/api', rankingRoutes);
 
 // Middleware de manejo de errores (debe ir al final)
 app.use(errorTelemetryMiddleware);
