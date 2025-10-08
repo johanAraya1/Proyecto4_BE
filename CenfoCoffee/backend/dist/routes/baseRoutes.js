@@ -1,0 +1,9 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+// Base API route - health check and status endpoint
+const router = (0, express_1.Router)();
+router.get('/', (req, res) => {
+    res.json({ message: 'Backend ready' });
+});
+exports.default = router;
