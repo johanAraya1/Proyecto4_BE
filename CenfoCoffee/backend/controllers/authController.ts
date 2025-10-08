@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { registerUser, loginUser } from '../services/authService';
 import { telemetryService } from '../services/telemetryService';
 
+// HTTP handler for POST /auth/register - creates new user account
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, name } = req.body;
@@ -18,6 +19,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+// HTTP handler for POST /auth/login - authenticates user and returns session data
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;

@@ -1,6 +1,7 @@
 import { supabase } from '../utils/supabaseClient';
 import { User } from '../models/User';
 
+// Registers a new user with default role and ELO rating
 export const registerUser = async (
   email: string,
   password: string,
@@ -14,6 +15,7 @@ export const registerUser = async (
   return data[0] as User;
 };
 
+// Authenticates user login and returns token with user data
 export const loginUser = async (email: string, password: string): Promise<{ token: string; user: Omit<User, 'password'> }> => {
   const { data, error } = await supabase.from('users').select('*').eq('email', email).eq('password', password);
   if (error || !data || data.length === 0) throw new Error('Invalid credentials');

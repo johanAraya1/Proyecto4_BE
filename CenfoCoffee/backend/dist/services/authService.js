@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loginUser = exports.registerUser = void 0;
 const supabaseClient_1 = require("../utils/supabaseClient");
+// Registers a new user with default role and ELO rating
 const registerUser = async (email, password, name, role = 'player', elo = 1000 // default elo for players
 ) => {
     const user = { email, password, name, role, elo: role === 'player' ? elo : undefined };
@@ -11,6 +12,7 @@ const registerUser = async (email, password, name, role = 'player', elo = 1000 /
     return data[0];
 };
 exports.registerUser = registerUser;
+// Authenticates user login and returns token with user data
 const loginUser = async (email, password) => {
     const { data, error } = await supabaseClient_1.supabase.from('users').select('*').eq('email', email).eq('password', password);
     if (error || !data || data.length === 0)

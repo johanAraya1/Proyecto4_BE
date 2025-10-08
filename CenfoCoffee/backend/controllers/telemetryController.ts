@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { telemetryService } from '../services/telemetryService';
 
+// HTTP handler for GET /api/telemetry/metrics - returns complete telemetry data
 export const getMetrics = async (req: Request, res: Response): Promise<void> => {
   try {
     const metrics = telemetryService.getMetrics();
@@ -10,6 +11,7 @@ export const getMetrics = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+// HTTP handler for GET /api/telemetry/health - returns system health status
 export const getHealthStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const health = telemetryService.getHealthStatus();
@@ -19,6 +21,7 @@ export const getHealthStatus = async (req: Request, res: Response): Promise<void
   }
 };
 
+// HTTP handler for POST /api/telemetry/reset - clears all telemetry data
 export const resetMetrics = async (req: Request, res: Response): Promise<void> => {
   try {
     telemetryService.reset();
@@ -28,7 +31,7 @@ export const resetMetrics = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// Endpoint para obtener métricas específicas (útil para dashboards)
+// HTTP handler for GET /api/telemetry/metrics/:type - returns specific metric categories
 export const getSpecificMetrics = async (req: Request, res: Response): Promise<void> => {
   try {
     const { type } = req.params; // 'events', 'responses', 'errors', 'system'
