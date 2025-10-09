@@ -17,7 +17,7 @@ export interface Room {
 
 // Cuerpo de solicitud para crear nuevas salas
 export interface CreateRoomRequest {
-  user_id: string | number;
+  user_id: string;
 }
 
 // Respuesta de API para creación de sala
