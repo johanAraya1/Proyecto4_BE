@@ -34,7 +34,7 @@ export const telemetryMiddleware = (req: RequestWithStartTime, res: Response, ne
       responseTime,
       timestamp: new Date().toISOString(),
       userAgent: req.get('User-Agent') || 'unknown',
-      ip: req.ip || req.connection.remoteAddress
+      ip: req.ip || req.socket.remoteAddress
     }));
 
     return originalEnd.call(this, chunk, encoding);
