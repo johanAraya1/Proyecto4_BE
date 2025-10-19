@@ -42,7 +42,12 @@ wss.on('connection', (ws, req) => {
   handleGameConnection(ws, 'demo-user-id');
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`WebSocket server running on ws://localhost:${PORT}/game`);
-});
+// Export app and server for testing. When run directly, start listening.
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`WebSocket server running on ws://localhost:${PORT}/game`);
+  });
+}
+
+export { app, server };
