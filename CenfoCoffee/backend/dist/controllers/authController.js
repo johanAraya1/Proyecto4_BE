@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.login = exports.register = void 0;
 const authService_1 = require("../services/authService");
 const telemetryService_1 = require("../services/telemetryService");
+// HTTP handler for POST /auth/register - creates new user account
 const register = async (req, res) => {
     try {
         const { email, password, name } = req.body;
@@ -18,6 +19,7 @@ const register = async (req, res) => {
     }
 };
 exports.register = register;
+// HTTP handler for POST /auth/login - authenticates user and returns session data
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;

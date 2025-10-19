@@ -7,6 +7,7 @@ import {
   EventType 
 } from '../models/Telemetry';
 
+// Singleton service for collecting and managing application telemetry data
 class TelemetryService {
   private static instance: TelemetryService;
   private eventCounters: Map<string, EventCounter> = new Map();
@@ -19,6 +20,7 @@ class TelemetryService {
 
   private constructor() {}
 
+  // Returns the singleton instance of TelemetryService
   public static getInstance(): TelemetryService {
     if (!TelemetryService.instance) {
       TelemetryService.instance = new TelemetryService();
@@ -26,7 +28,7 @@ class TelemetryService {
     return TelemetryService.instance;
   }
 
-  // Incrementar contador de eventos
+  // Increments the counter for a specific event type
   public incrementEvent(eventType: EventType): void {
     const current = this.eventCounters.get(eventType);
     if (current) {
@@ -40,11 +42,10 @@ class TelemetryService {
       });
     }
     
-    // Log estructurado
     this.logEvent(eventType);
   }
 
-  // Registrar tiempo de respuesta
+  // Records response time metrics for API endpoints
   public recordResponseTime(endpoint: string, method: string, responseTime: number): void {
     const key = `${method}:${endpoint}`;
     const current = this.responseMetrics.get(key);
@@ -71,7 +72,7 @@ class TelemetryService {
     }
   }
 
-  // Registrar errores
+  // Records error occurrences with status codes and messages
   public recordError(statusCode: number, errorMessage?: string): void {
     this.totalErrors++;
     const current = this.errorMetrics.get(statusCode);
@@ -89,11 +90,10 @@ class TelemetryService {
       });
     }
 
-    // Log estructurado para errores
     this.logError(statusCode, errorMessage);
   }
 
-  // Obtener todas las métricas
+  // Returns complete telemetry data including system metrics and counters
   public getMetrics(): TelemetryData {
     const uptime = Date.now() - this.startTime.getTime();
     const averageResponseTime = this.responseTimes.length > 0 
@@ -114,7 +114,7 @@ class TelemetryService {
     };
   }
 
-  // Reset métricas (útil para testing o reset manual)
+  // Resets all telemetry data and counters
   public reset(): void {
     this.eventCounters.clear();
     this.responseMetrics.clear();
@@ -125,7 +125,7 @@ class TelemetryService {
     this.responseTimes = [];
   }
 
-  // Logging estructurado
+  // Logs event occurrences to console for monitoring
   private logEvent(eventType: EventType): void {
     console.log(JSON.stringify({
       type: 'EVENT',
@@ -135,6 +135,7 @@ class TelemetryService {
     }));
   }
 
+  // Logs errors to console with details for debugging
   private logError(statusCode: number, errorMessage?: string): void {
     console.error(JSON.stringify({
       type: 'ERROR',
@@ -145,7 +146,7 @@ class TelemetryService {
     }));
   }
 
-  // Métricas específicas para monitoreo
+  // Returns current system health status based on error rates
   public getHealthStatus(): { status: string; uptime: number; errorRate: number } {
     const uptime = Date.now() - this.startTime.getTime();
     const errorRate = this.totalRequests > 0 ? (this.totalErrors / this.totalRequests) * 100 : 0;

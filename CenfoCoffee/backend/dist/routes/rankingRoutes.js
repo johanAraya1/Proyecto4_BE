@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const rankingService_1 = require("../services/rankingService");
+// Player ranking routes - leaderboard and player statistics
 const router = express_1.default.Router();
 router.get("/ranking", async (_req, res) => {
     try {

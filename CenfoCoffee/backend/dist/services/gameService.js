@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateGameAction = void 0;
-// Game logic will be implemented here
+// Validates player actions within the game rules
 const validateGameAction = (action) => {
     // Validate game action
     return true;

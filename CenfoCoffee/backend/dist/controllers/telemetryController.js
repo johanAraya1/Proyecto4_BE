@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSpecificMetrics = exports.resetMetrics = exports.getHealthStatus = exports.getMetrics = void 0;
 const telemetryService_1 = require("../services/telemetryService");
+// HTTP handler for GET /api/telemetry/metrics - returns complete telemetry data
 const getMetrics = async (req, res) => {
     try {
         const metrics = telemetryService_1.telemetryService.getMetrics();
@@ -12,6 +13,7 @@ const getMetrics = async (req, res) => {
     }
 };
 exports.getMetrics = getMetrics;
+// HTTP handler for GET /api/telemetry/health - returns system health status
 const getHealthStatus = async (req, res) => {
     try {
         const health = telemetryService_1.telemetryService.getHealthStatus();
@@ -22,6 +24,7 @@ const getHealthStatus = async (req, res) => {
     }
 };
 exports.getHealthStatus = getHealthStatus;
+// HTTP handler for POST /api/telemetry/reset - clears all telemetry data
 const resetMetrics = async (req, res) => {
     try {
         telemetryService_1.telemetryService.reset();
@@ -32,7 +35,7 @@ const resetMetrics = async (req, res) => {
     }
 };
 exports.resetMetrics = resetMetrics;
-// Endpoint para obtener métricas específicas (útil para dashboards)
+// HTTP handler for GET /api/telemetry/metrics/:type - returns specific metric categories
 const getSpecificMetrics = async (req, res) => {
     try {
         const { type } = req.params; // 'events', 'responses', 'errors', 'system'
