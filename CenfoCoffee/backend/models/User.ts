@@ -3,7 +3,7 @@ export type UserRole = 'admin' | 'player';
 
 // Modelo de entidad de usuario
 export interface User {
-  id: string;
+  id: number;
   email: string;
   password: string;
   name: string;

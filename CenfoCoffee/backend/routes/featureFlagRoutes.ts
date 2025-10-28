@@ -9,15 +9,16 @@ import {
   toggleFeatureFlagController
 } from '../controllers/featureFlagController';
 
-// Rutas de API REST para feature flags - operaciones CRUD completas
+// Feature flags routes - following the same pattern as authRoutes
 const router = Router();
 
-router.post('/', createFeatureFlagController);                    // POST /api/feature-flags
-router.get('/', getAllFeatureFlagsController);                    // GET /api/feature-flags
-router.get('/:id', getFeatureFlagByIdController);                 // GET /api/feature-flags/:id
-router.get('/name/:name', getFeatureFlagByNameController);        // GET /api/feature-flags/name/:name
-router.put('/:id', updateFeatureFlagController);                  // PUT /api/feature-flags/:id
-router.delete('/:id', deleteFeatureFlagController);               // DELETE /api/feature-flags/:id
-router.patch('/:id/toggle', toggleFeatureFlagController);         // PATCH /api/feature-flags/:id/toggle
+// Basic CRUD operations for feature flags
+router.post('/feature-flags', createFeatureFlagController);                    
+router.get('/feature-flags', getAllFeatureFlagsController);                    
+router.get('/feature-flags/:id', getFeatureFlagByIdController);                 
+router.get('/feature-flags/name/:name', getFeatureFlagByNameController);        
+router.put('/feature-flags/:id', updateFeatureFlagController);                  
+router.delete('/feature-flags/:id', deleteFeatureFlagController);               
+router.patch('/feature-flags/:id/toggle', toggleFeatureFlagController);         
 
 export default router;

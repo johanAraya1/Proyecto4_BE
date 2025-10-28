@@ -2,13 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const featureFlagController_1 = require("../controllers/featureFlagController");
-// Rutas de API REST para feature flags - operaciones CRUD completas
+// Feature flags routes - following the same pattern as authRoutes
 const router = (0, express_1.Router)();
-router.post('/', featureFlagController_1.createFeatureFlagController); // POST /api/feature-flags
-router.get('/', featureFlagController_1.getAllFeatureFlagsController); // GET /api/feature-flags
-router.get('/:id', featureFlagController_1.getFeatureFlagByIdController); // GET /api/feature-flags/:id
-router.get('/name/:name', featureFlagController_1.getFeatureFlagByNameController); // GET /api/feature-flags/name/:name
-router.put('/:id', featureFlagController_1.updateFeatureFlagController); // PUT /api/feature-flags/:id
-router.delete('/:id', featureFlagController_1.deleteFeatureFlagController); // DELETE /api/feature-flags/:id
-router.patch('/:id/toggle', featureFlagController_1.toggleFeatureFlagController); // PATCH /api/feature-flags/:id/toggle
+// Basic CRUD operations for feature flags
+router.post('/feature-flags', featureFlagController_1.createFeatureFlagController);
+router.get('/feature-flags', featureFlagController_1.getAllFeatureFlagsController);
+router.get('/feature-flags/:id', featureFlagController_1.getFeatureFlagByIdController);
+router.get('/feature-flags/name/:name', featureFlagController_1.getFeatureFlagByNameController);
+router.put('/feature-flags/:id', featureFlagController_1.updateFeatureFlagController);
+router.delete('/feature-flags/:id', featureFlagController_1.deleteFeatureFlagController);
+router.patch('/feature-flags/:id/toggle', featureFlagController_1.toggleFeatureFlagController);
 exports.default = router;
