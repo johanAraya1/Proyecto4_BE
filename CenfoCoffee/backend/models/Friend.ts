@@ -40,10 +40,6 @@ export interface FriendRequestWithDetails {
   from_user_name: string;
   from_user_email: string;
   from_user_elo?: number;
-  to_user?: number;           // Para solicitudes enviadas
-  to_user_name?: string;      // Para solicitudes enviadas
-  to_user_email?: string;     // Para solicitudes enviadas
-  to_user_elo?: number;       // Para solicitudes enviadas
   status: string;
   created_at?: string;
 }

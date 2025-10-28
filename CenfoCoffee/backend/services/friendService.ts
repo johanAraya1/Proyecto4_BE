@@ -128,50 +128,6 @@ export class FriendService {
     }
   }
 
-  // Obtener solicitudes de amistad enviadas
-  async getSentFriendRequests(userId: number): Promise<FriendRequestWithDetails[]> {
-    try {
-      const { data, error } = await supabase
-        .from('friend_request')
-        .select(`
-          id,
-          to_user,
-          status,
-          created_at,
-          users:to_user (
-            name,
-            email,
-            elo
-          )
-        `)
-        .eq('from_user', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw new Error(`Error obteniendo solicitudes enviadas: ${error.message}`);
-      }
-
-      // Transformar los datos al formato esperado
-      const requests: FriendRequestWithDetails[] = (data || []).map((request: any) => ({
-        id: request.id,
-        from_user: userId, // El usuario actual es quien envió
-        from_user_name: '', // No necesario para solicitudes enviadas
-        from_user_email: '', // No necesario para solicitudes enviadas
-        from_user_elo: 0, // No necesario para solicitudes enviadas
-        to_user: request.to_user,
-        to_user_name: request.users.name,
-        to_user_email: request.users.email,
-        to_user_elo: request.users.elo,
-        status: request.status,
-        created_at: request.created_at
-      }));
-
-      return requests;
-    } catch (error: any) {
-      throw new Error(`Error obteniendo solicitudes enviadas: ${error.message}`);
-    }
-  }
-
   // Aceptar solicitud de amistad
   async acceptFriendRequest(requestId: number, userId: number): Promise<Friend> {
     try {
