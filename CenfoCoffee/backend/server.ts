@@ -16,7 +16,26 @@ import { handleGameConnection } from './controllers/gameController';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// Middleware de logging para debug
+app.use((req, res, next) => {
+  console.log('\n=== INCOMING REQUEST ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+  console.log('========================\n');
+  next();
+});
+
+// Configuración de CORS más permisiva para desarrollo
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(telemetryMiddleware);
 

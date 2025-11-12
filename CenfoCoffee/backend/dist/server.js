@@ -21,7 +21,23 @@ const gameController_1 = require("./controllers/gameController");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 exports.app = app;
-app.use((0, cors_1.default)());
+// Middleware de logging para debug
+app.use((req, res, next) => {
+    console.log('\n=== INCOMING REQUEST ===');
+    console.log('Method:', req.method);
+    console.log('URL:', req.url);
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+    console.log('========================\n');
+    next();
+});
+// Configuración de CORS más permisiva para desarrollo
+app.use((0, cors_1.default)({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+    credentials: true
+}));
 app.use(express_1.default.json());
 app.use(telemetryMiddleware_1.telemetryMiddleware);
 app.use('/', baseRoutes_1.default);
