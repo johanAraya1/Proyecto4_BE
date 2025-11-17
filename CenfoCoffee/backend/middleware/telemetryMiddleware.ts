@@ -26,16 +26,17 @@ export const telemetryMiddleware = (req: RequestWithStartTime, res: Response, ne
       }
     }
 
-    console.log(JSON.stringify({
-      type: 'REQUEST',
-      method: req.method,
-      path: req.path,
-      statusCode: res.statusCode,
-      responseTime,
-      timestamp: new Date().toISOString(),
-      userAgent: req.get('User-Agent') || 'unknown',
-      ip: req.ip || req.socket.remoteAddress
-    }));
+    // Telemetry logging disabled for cleaner output
+    // console.log(JSON.stringify({
+    //   type: 'REQUEST',
+    //   method: req.method,
+    //   path: req.path,
+    //   statusCode: res.statusCode,
+    //   responseTime,
+    //   timestamp: new Date().toISOString(),
+    //   userAgent: req.get('User-Agent') || 'unknown',
+    //   ip: req.ip || req.socket.remoteAddress
+    // }));
 
     return originalEnd.call(this, chunk, encoding);
   };

@@ -63,6 +63,7 @@ export type EventType =
   | 'user_rooms_get_failed'
   | 'room_join_success'
   | 'room_join_failed'
+  | 'room_user_already_in_room'
   | 'feature_flag_create_success'
   | 'feature_flag_create_failed'
   | 'feature_flag_create_validation_failed'

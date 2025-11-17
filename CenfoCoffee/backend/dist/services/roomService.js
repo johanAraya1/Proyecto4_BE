@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.joinRoom = exports.getRoomByCode = exports.getRoomsByCreator = exports.getActiveRooms = exports.getRoomById = exports.createRoom = void 0;
+exports.getUserRoomsWithSummary = exports.getGameDetailsByCode = exports.joinRoom = exports.getRoomByCode = exports.getRoomsByCreator = exports.getActiveRooms = exports.getRoomById = exports.createRoom = void 0;
 const supabaseClient_1 = require("../utils/supabaseClient");
 // Creates a new game room with unique code generation
 const createRoom = async (createRoomData) => {
@@ -76,18 +76,14 @@ const getRoomByCode = async (code) => {
         }
         throw new Error(`Error al obtener la sala: ${roomError.message}`);
     }
-    console.log('Room data:', roomData);
     // Fetch player names from users table
     const userIds = [roomData.creator_id, roomData.opponent_id].filter(id => id !== null);
-    console.log('User IDs to search:', userIds);
     let users = [];
     if (userIds.length > 0) {
         const { data: userData, error: userError } = await supabaseClient_1.supabase
             .from('users')
             .select('id, name')
             .in('id', userIds);
-        console.log('User data response:', userData);
-        console.log('User error:', userError);
         if (userError) {
             throw new Error(`Error al obtener usuarios: ${userError.message}`);
         }
@@ -95,14 +91,11 @@ const getRoomByCode = async (code) => {
     }
     const creatorUser = users.find(user => String(user.id) === String(roomData.creator_id));
     const opponentUser = users.find(user => String(user.id) === String(roomData.opponent_id));
-    console.log('Creator user found:', creatorUser);
-    console.log('Opponent user found:', opponentUser);
     const room = {
         ...roomData,
         creator_name: creatorUser?.name || null,
         opponent_name: opponentUser?.name || null
     };
-    console.log('Final room object:', room);
     return room;
 };
 exports.getRoomByCode = getRoomByCode;
@@ -127,10 +120,6 @@ const joinRoom = async (roomId, opponentId) => {
             throw new Error('Esta sala no está disponible para unirse');
         }
     }
-    // Prevent self-join
-    if (existingRoom.creator_id === String(opponentId)) {
-        throw new Error('No puedes unirte a tu propia sala');
-    }
     // Atomically update room with opponent and start game
     const { data, error } = await supabaseClient_1.supabase
         .from('game_rooms')
@@ -153,3 +142,56 @@ const joinRoom = async (roomId, opponentId) => {
     return data;
 };
 exports.joinRoom = joinRoom;
+// Obtiene detalles completos de una sala para el juego incluyendo información de jugadores
+const getGameDetailsByCode = async (code) => {
+    const { data: roomData, error: roomError } = await supabaseClient_1.supabase
+        .from('game_rooms')
+        .select(`
+      id,
+      code,
+      status,
+      creator_id,
+      opponent_id,
+      creator:users!creator_id(id, name, elo),
+      opponent:users!opponent_id(id, name, elo)
+    `)
+        .eq('code', code.toUpperCase())
+        .single();
+    if (roomError) {
+        if (roomError.code === 'PGRST116') {
+            return null;
+        }
+        throw new Error(`Error al obtener detalles del juego: ${roomError.message}`);
+    }
+    const creator = Array.isArray(roomData.creator) ? roomData.creator[0] : roomData.creator;
+    const opponent = Array.isArray(roomData.opponent) ? roomData.opponent[0] : roomData.opponent;
+    return {
+        id: roomData.id,
+        code: roomData.code,
+        status: roomData.status,
+        creator: {
+            id: roomData.creator_id,
+            name: creator?.name || null,
+            elo: creator?.elo || null
+        },
+        opponent: {
+            id: roomData.opponent_id,
+            name: opponent?.name || null,
+            elo: opponent?.elo || null
+        }
+    };
+};
+exports.getGameDetailsByCode = getGameDetailsByCode;
+// Obtiene TODAS las salas donde el usuario participa (creador u oponente) con resumen
+// Usa función RPC de PostgreSQL para mejor performance
+const getUserRoomsWithSummary = async (userId) => {
+    const { data, error } = await supabaseClient_1.supabase
+        .rpc('get_user_rooms_with_summary', {
+        user_id_param: parseInt(String(userId))
+    });
+    if (error) {
+        throw new Error(`Error al obtener salas del usuario: ${error.message}`);
+    }
+    return data;
+};
+exports.getUserRoomsWithSummary = getUserRoomsWithSummary;

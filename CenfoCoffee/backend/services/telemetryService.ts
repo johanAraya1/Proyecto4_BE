@@ -127,23 +127,25 @@ class TelemetryService {
 
   // Logs event occurrences to console for monitoring
   private logEvent(eventType: EventType): void {
-    console.log(JSON.stringify({
-      type: 'EVENT',
-      eventType,
-      timestamp: new Date().toISOString(),
-      count: this.eventCounters.get(eventType)?.count
-    }));
+    // Telemetry logging disabled for cleaner output
+    // console.log(JSON.stringify({
+    //   type: 'EVENT',
+    //   eventType,
+    //   timestamp: new Date().toISOString(),
+    //   count: this.eventCounters.get(eventType)?.count
+    // }));
   }
 
   // Logs errors to console with details for debugging
   private logError(statusCode: number, errorMessage?: string): void {
-    console.error(JSON.stringify({
-      type: 'ERROR',
-      statusCode,
-      message: errorMessage,
-      timestamp: new Date().toISOString(),
-      totalErrors: this.totalErrors
-    }));
+    // Telemetry logging disabled for cleaner output
+    // console.error(JSON.stringify({
+    //   type: 'ERROR',
+    //   statusCode,
+    //   message: errorMessage,
+    //   timestamp: new Date().toISOString(),
+    //   totalErrors: this.totalErrors
+    // }));
   }
 
   // Returns current system health status based on error rates
