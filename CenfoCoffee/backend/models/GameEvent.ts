@@ -34,10 +34,11 @@ export interface InventoryItem {
 
 // Orden del juego
 export interface Order {
-  id?: number | string;  // ID único de la orden (generado por frontend)
+  id?: number | string;  // ID único de la orden
+  turn?: number;  // Turno en el que apareció la orden (siempre 1 para órdenes nuevas)
   name?: string;  // Nombre de la orden
   ingredients: string[];
-  points: number;
+  points: number;  // Puntos que otorga la orden (50-300)
 }
 
 // Payload para GRID_INITIALIZED
