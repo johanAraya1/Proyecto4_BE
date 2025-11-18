@@ -15,6 +15,7 @@ export interface PlayerState {
   inventory: PlayerInventory;
   score: number;
   orders: Order[];  // Array de 1-3 órdenes
+  turnsCompleted?: number;  // Número de turnos completados (0, 1, 2+)
 }
 
 // Estado completo del juego
@@ -28,11 +29,13 @@ export interface GameState {
   player1_inventory: PlayerInventory;
   player1_score: number;
   player1_order: Order[];  // Array de 1-3 órdenes
+  player1_turns_completed?: number;  // Turnos completados por player1
   player2_id: number;
   player2_position: Position;
   player2_inventory: PlayerInventory;
   player2_score: number;
   player2_order: Order[];  // Array de 1-3 órdenes
+  player2_turns_completed?: number;  // Turnos completados por player2
   current_turn: number;
   movement_count?: number;
   updated_at?: string;

@@ -293,13 +293,15 @@ export const loadGameStateController = async (req: Request, res: Response): Prom
           name: gameState.player1_id?.toString() || 'Player 1',
           score: gameState.player1_score,
           inventory: gameState.player1_inventory,
-          orders: gameState.player1_order || []
+          orders: gameState.player1_order || [],
+          turnsCompleted: gameState.player1_turns_completed || 0
         },
         player2: {
           name: gameState.player2_id?.toString() || 'Player 2',
           score: gameState.player2_score,
           inventory: gameState.player2_inventory,
-          orders: gameState.player2_order || []
+          orders: gameState.player2_order || [],
+          turnsCompleted: gameState.player2_turns_completed || 0
         },
         gridString: gameState.grid_string
       }

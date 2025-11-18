@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateGameAction = exports.getGameEvents = exports.updatePlayerStateWithoutOrders = exports.updatePlayerOrderAndScore = exports.updateMovementCount = exports.updateCurrentTurn = exports.updateCompletePlayerState = exports.updatePlayerInventory = exports.updatePlayerPosition = exports.initializeGameState = exports.getGameState = exports.saveGameEvent = void 0;
+exports.validateGameAction = exports.addPlayerOrders = exports.incrementPlayerTurnsCompleted = exports.getGameEvents = exports.updatePlayerStateWithoutOrders = exports.updatePlayerOrderAndScore = exports.updateMovementCount = exports.updateCurrentTurn = exports.updateCompletePlayerState = exports.updatePlayerInventory = exports.updatePlayerPosition = exports.initializeGameState = exports.getGameState = exports.saveGameEvent = void 0;
 const supabaseClient_1 = require("../utils/supabaseClient");
 const orderValidation_1 = require("../utils/orderValidation");
 // Guarda un evento de juego en la base de datos
@@ -61,11 +61,13 @@ const initializeGameState = async (matchId, player1Id, player2Id, grid, gridStri
         player1_inventory: initialInventory,
         player1_score: 0,
         player1_order: validatedPlayer1Orders,
+        player1_turns_completed: 1, // Ambos jugadores empiezan en turno 1
         player2_id: player2Id,
         player2_position: player2Position,
         player2_inventory: initialInventory,
         player2_score: 0,
         player2_order: validatedPlayer2Orders,
+        player2_turns_completed: 1, // Ambos jugadores empiezan en turno 1
         current_turn: 1,
         movement_count: 0
     };
@@ -311,6 +313,56 @@ const getGameEvents = async (matchId) => {
     return data;
 };
 exports.getGameEvents = getGameEvents;
+// Incrementa el contador de turnos completados de un jugador
+const incrementPlayerTurnsCompleted = async (matchId, playerId) => {
+    const state = await (0, exports.getGameState)(matchId);
+    if (!state)
+        throw new Error('Estado del juego no encontrado');
+    const isPlayer1 = state.player1_id === playerId;
+    const currentTurns = isPlayer1 ? (state.player1_turns_completed || 0) : (state.player2_turns_completed || 0);
+    const newTurns = currentTurns + 1;
+    const updates = isPlayer1 ? {
+        player1_turns_completed: newTurns,
+        updated_at: new Date().toISOString()
+    } : {
+        player2_turns_completed: newTurns,
+        updated_at: new Date().toISOString()
+    };
+    const { error } = await supabaseClient_1.supabase
+        .from('game_state')
+        .update(updates)
+        .eq('match_id', matchId);
+    if (error) {
+        throw new Error(`Error al incrementar turnos completados: ${error.message}`);
+    }
+    return newTurns;
+};
+exports.incrementPlayerTurnsCompleted = incrementPlayerTurnsCompleted;
+// Agrega nuevas órdenes a un jugador (sin reemplazar las existentes)
+const addPlayerOrders = async (matchId, playerId, newOrders) => {
+    const state = await (0, exports.getGameState)(matchId);
+    if (!state)
+        throw new Error('Estado del juego no encontrado');
+    const isPlayer1 = state.player1_id === playerId;
+    const currentOrders = isPlayer1 ? (state.player1_order || []) : (state.player2_order || []);
+    // Combinar órdenes existentes con nuevas
+    const updatedOrders = [...currentOrders, ...newOrders];
+    const updates = isPlayer1 ? {
+        player1_order: updatedOrders,
+        updated_at: new Date().toISOString()
+    } : {
+        player2_order: updatedOrders,
+        updated_at: new Date().toISOString()
+    };
+    const { error } = await supabaseClient_1.supabase
+        .from('game_state')
+        .update(updates)
+        .eq('match_id', matchId);
+    if (error) {
+        throw new Error(`Error al agregar órdenes del jugador: ${error.message}`);
+    }
+};
+exports.addPlayerOrders = addPlayerOrders;
 // Validates player actions within the game rules
 const validateGameAction = (action) => {
     // Validate game action

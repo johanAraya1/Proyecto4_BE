@@ -77,11 +77,13 @@ export const initializeGameState = async (
     player1_inventory: initialInventory,
     player1_score: 0,
     player1_order: validatedPlayer1Orders,
+    player1_turns_completed: 1,  // Ambos jugadores empiezan en turno 1
     player2_id: player2Id,
     player2_position: player2Position,
     player2_inventory: initialInventory,
     player2_score: 0,
     player2_order: validatedPlayer2Orders,
+    player2_turns_completed: 1,  // Ambos jugadores empiezan en turno 1
     current_turn: 1,
     movement_count: 0
   };
@@ -382,6 +384,71 @@ export const getGameEvents = async (matchId: string): Promise<GameEvent[]> => {
   }
 
   return data as GameEvent[];
+};
+
+// Incrementa el contador de turnos completados de un jugador
+export const incrementPlayerTurnsCompleted = async (
+  matchId: string,
+  playerId: number
+): Promise<number> => {
+  const state = await getGameState(matchId);
+  if (!state) throw new Error('Estado del juego no encontrado');
+
+  const isPlayer1 = state.player1_id === playerId;
+  const currentTurns = isPlayer1 ? (state.player1_turns_completed || 0) : (state.player2_turns_completed || 0);
+  const newTurns = currentTurns + 1;
+
+  const updates = isPlayer1 ? {
+    player1_turns_completed: newTurns,
+    updated_at: new Date().toISOString()
+  } : {
+    player2_turns_completed: newTurns,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await supabase
+    .from('game_state')
+    .update(updates)
+    .eq('match_id', matchId);
+
+  if (error) {
+    throw new Error(`Error al incrementar turnos completados: ${error.message}`);
+  }
+
+  return newTurns;
+};
+
+// Agrega nuevas órdenes a un jugador (sin reemplazar las existentes)
+export const addPlayerOrders = async (
+  matchId: string,
+  playerId: number,
+  newOrders: any[]
+): Promise<void> => {
+  const state = await getGameState(matchId);
+  if (!state) throw new Error('Estado del juego no encontrado');
+
+  const isPlayer1 = state.player1_id === playerId;
+  const currentOrders = isPlayer1 ? (state.player1_order || []) : (state.player2_order || []);
+  
+  // Combinar órdenes existentes con nuevas
+  const updatedOrders = [...currentOrders, ...newOrders];
+
+  const updates = isPlayer1 ? {
+    player1_order: updatedOrders,
+    updated_at: new Date().toISOString()
+  } : {
+    player2_order: updatedOrders,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await supabase
+    .from('game_state')
+    .update(updates)
+    .eq('match_id', matchId);
+
+  if (error) {
+    throw new Error(`Error al agregar órdenes del jugador: ${error.message}`);
+  }
 };
 
 // Validates player actions within the game rules

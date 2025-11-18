@@ -38,14 +38,16 @@ export const getGameStateController = async (req: Request, res: Response): Promi
           position: gameState.player1_position,
           inventory: gameState.player1_inventory,
           score: gameState.player1_score,
-          orders: gameState.player1_order || []
+          orders: gameState.player1_order || [],
+          turnsCompleted: gameState.player1_turns_completed || 0
         },
         player2: {
           id: gameState.player2_id,
           position: gameState.player2_position,
           inventory: gameState.player2_inventory,
           score: gameState.player2_score,
-          orders: gameState.player2_order || []
+          orders: gameState.player2_order || [],
+          turnsCompleted: gameState.player2_turns_completed || 0
         },
         currentTurn: gameState.current_turn
       }
