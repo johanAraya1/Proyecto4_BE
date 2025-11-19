@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateGameAction = exports.addPlayerOrders = exports.incrementPlayerTurnsCompleted = exports.getGameEvents = exports.updatePlayerStateWithoutOrders = exports.updatePlayerOrderAndScore = exports.updateMovementCount = exports.updateCurrentTurn = exports.updateCompletePlayerState = exports.updatePlayerInventory = exports.updatePlayerPosition = exports.initializeGameState = exports.getGameState = exports.saveGameEvent = void 0;
+exports.validateGameAction = exports.finishGameRoom = exports.updatePlayerElo = exports.addPlayerOrders = exports.incrementOrderTurnsAndApplyPenalty = exports.incrementPlayerTurnsCompleted = exports.getGameEvents = exports.updatePlayerStateWithoutOrders = exports.updatePlayerOrderAndScore = exports.updateMovementCount = exports.updateCurrentTurn = exports.updateCompletePlayerState = exports.updatePlayerInventory = exports.updatePlayerPosition = exports.initializeGameState = exports.getGameState = exports.saveGameEvent = void 0;
 const supabaseClient_1 = require("../utils/supabaseClient");
 const orderValidation_1 = require("../utils/orderValidation");
 // Guarda un evento de juego en la base de datos
@@ -130,9 +130,6 @@ const updateCompletePlayerState = async (matchId, playerId, position, inventory,
     // Protección: No permitir que el score baje sin justificación
     const currentScore = isPlayer1 ? state.player1_score : state.player2_score;
     const finalScore = Math.max(score, currentScore);
-    if (score < currentScore) {
-        console.log(`⚠️ [Score Protection] Intento de bajar score de ${currentScore} a ${score}. Manteniendo ${finalScore}`);
-    }
     let inventoryObj;
     if (Array.isArray(inventory)) {
         inventoryObj = {
@@ -255,9 +252,6 @@ const updatePlayerStateWithoutOrders = async (matchId, playerId, position, inven
     // Protección: No permitir que el score baje sin justificación
     const currentScore = isPlayer1 ? state.player1_score : state.player2_score;
     const finalScore = Math.max(score, currentScore);
-    if (score < currentScore) {
-        console.log(`⚠️ [Score Protection] Intento de bajar score de ${currentScore} a ${score}. Manteniendo ${finalScore}`);
-    }
     let inventoryObj;
     if (Array.isArray(inventory)) {
         inventoryObj = {
@@ -338,6 +332,45 @@ const incrementPlayerTurnsCompleted = async (matchId, playerId) => {
     return newTurns;
 };
 exports.incrementPlayerTurnsCompleted = incrementPlayerTurnsCompleted;
+// Incrementa 'turn' de órdenes existentes y aplica penalización en una sola operación
+// Retorna: { penaltyApplied: number, updatedOrders: Order[] }
+const incrementOrderTurnsAndApplyPenalty = async (matchId, playerId) => {
+    const state = await (0, exports.getGameState)(matchId);
+    if (!state)
+        throw new Error('Estado del juego no encontrado');
+    const isPlayer1 = state.player1_id === playerId;
+    const currentOrders = isPlayer1 ? (state.player1_order || []) : (state.player2_order || []);
+    const currentScore = isPlayer1 ? state.player1_score : state.player2_score;
+    // PASO 1: Calcular penalización ANTES de incrementar (órdenes con turn > 2)
+    const oldOrders = currentOrders.filter(order => (order.turn || 1) > 2);
+    const penaltyAmount = oldOrders.length * 50;
+    // PASO 2: Incrementar turn en +1 para cada orden existente
+    const updatedOrders = currentOrders.map(order => ({
+        ...order,
+        turn: (order.turn || 1) + 1
+    }));
+    // PASO 3: Calcular nuevo score (permitir negativos)
+    const newScore = currentScore - penaltyAmount;
+    // PASO 4: Actualizar DB con órdenes incrementadas Y score penalizado
+    const updates = isPlayer1 ? {
+        player1_order: updatedOrders,
+        player1_score: newScore,
+        updated_at: new Date().toISOString()
+    } : {
+        player2_order: updatedOrders,
+        player2_score: newScore,
+        updated_at: new Date().toISOString()
+    };
+    const { error } = await supabaseClient_1.supabase
+        .from('game_state')
+        .update(updates)
+        .eq('match_id', matchId);
+    if (error) {
+        throw new Error(`Error al incrementar turnos y aplicar penalización: ${error.message}`);
+    }
+    return { penaltyApplied: penaltyAmount, updatedOrders };
+};
+exports.incrementOrderTurnsAndApplyPenalty = incrementOrderTurnsAndApplyPenalty;
 // Agrega nuevas órdenes a un jugador (sin reemplazar las existentes)
 const addPlayerOrders = async (matchId, playerId, newOrders) => {
     const state = await (0, exports.getGameState)(matchId);
@@ -363,6 +396,41 @@ const addPlayerOrders = async (matchId, playerId, newOrders) => {
     }
 };
 exports.addPlayerOrders = addPlayerOrders;
+// Actualiza el ELO de un jugador
+const updatePlayerElo = async (playerId, eloChange) => {
+    const { data: user, error: fetchError } = await supabaseClient_1.supabase
+        .from('users')
+        .select('elo')
+        .eq('id', playerId)
+        .single();
+    if (fetchError) {
+        throw new Error(`Error al obtener ELO del jugador: ${fetchError.message}`);
+    }
+    const currentElo = user.elo || 1000;
+    const newElo = currentElo + eloChange;
+    const { error: updateError } = await supabaseClient_1.supabase
+        .from('users')
+        .update({ elo: newElo })
+        .eq('id', playerId);
+    if (updateError) {
+        throw new Error(`Error al actualizar ELO del jugador: ${updateError.message}`);
+    }
+};
+exports.updatePlayerElo = updatePlayerElo;
+// Finaliza una sala de juego
+const finishGameRoom = async (matchId) => {
+    const { error } = await supabaseClient_1.supabase
+        .from('game_rooms')
+        .update({
+        status: 'finished',
+        finished_at: new Date().toISOString()
+    })
+        .eq('id', matchId);
+    if (error) {
+        throw new Error(`Error al finalizar sala: ${error.message}`);
+    }
+};
+exports.finishGameRoom = finishGameRoom;
 // Validates player actions within the game rules
 const validateGameAction = (action) => {
     // Validate game action

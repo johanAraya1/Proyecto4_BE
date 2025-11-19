@@ -53,10 +53,7 @@ wss.on('connection', (ws, req) => {
         (0, gameController_1.handleGameConnection)(ws, userId, roomCode);
     }
     catch (error) {
-        console.error('💥 [WebSocket] Error crítico en connection handler:', error);
         ws.close(1011, 'Error interno del servidor');
     }
 });
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => { });

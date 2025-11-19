@@ -13,7 +13,10 @@ import {
   updatePlayerOrderAndScore,
   updatePlayerStateWithoutOrders,
   incrementPlayerTurnsCompleted,
-  addPlayerOrders
+  incrementOrderTurnsAndApplyPenalty,
+  addPlayerOrders,
+  updatePlayerElo,
+  finishGameRoom
 } from '../services/gameService';
 import { getRoomByCode, getRoomById } from '../services/roomService';
 import { calculateOrdersToAdd, calculateTargetOrders } from '../utils/orderProgression';
@@ -221,18 +224,6 @@ async function handleGameEvent(event: IncomingGameMessage): Promise<void> {
           await updateMovementCount(match_id, movePayload.movementCount);
         }
 
-        // Obtener estado actualizado para mostrar inventarios
-        const gameState = await getGameState(match_id);
-        console.log('\n🎮 ═══════════════════════════════════════');
-        console.log('📍 MOVIMIENTO EJECUTADO');
-        console.log('═══════════════════════════════════════');
-        console.log('👤 Jugador en turno:', gameState?.current_turn === 1 ? 'PLAYER 1' : 'PLAYER 2');
-        console.log('🎯 Tipo de evento: MOVE');
-        console.log('🔢 Movimiento #:', movePayload.movementCount || gameState?.movement_count || 'N/A');
-        console.log('🧪 Ingrediente recogido:', sanitizedIngredient);
-        console.log('📦 Inventario Player 1:', JSON.stringify(gameState?.player1_inventory || {}));
-        console.log('📦 Inventario Player 2:', JSON.stringify(gameState?.player2_inventory || {}));
-        console.log('═══════════════════════════════════════\n');
       }
       break;
 
@@ -276,33 +267,51 @@ async function handleGameEvent(event: IncomingGameMessage): Promise<void> {
               tradePayload.totalPoints
             );
           }
+          
+          const updatedGameState = await getGameState(match_id);
+          if (updatedGameState) {
+            const player1Score = updatedGameState.player1_score;
+            const player2Score = updatedGameState.player2_score;
+            
+            if (player1Score >= 100 || player2Score >= 100) {
+              const winnerId = player1Score >= player2Score ? updatedGameState.player1_id : updatedGameState.player2_id;
+              const loserId = winnerId === updatedGameState.player1_id ? updatedGameState.player2_id : updatedGameState.player1_id;
+              const winnerScore = winnerId === updatedGameState.player1_id ? player1Score : player2Score;
+              const loserScore = winnerId === updatedGameState.player1_id ? player2Score : player1Score;
+              
+              // Actualizar ELO
+              await updatePlayerElo(winnerId, 500);
+              await updatePlayerElo(loserId, -250);
+              
+              // Finalizar sala
+              await finishGameRoom(match_id);
+              
+              
+              // Broadcast GAME_ENDED
+              broadcastToRoom(roomForTrade.code, {
+                type: 'GAME_ENDED',
+                payload: {
+                  winnerId,
+                  loserId,
+                  winnerScore,
+                  loserScore,
+                  reason: 'SCORE_LIMIT',
+                  eloChanges: {
+                    winner: 500,
+                    loser: -250
+                  }
+                }
+              });
+              
+              return; // Terminar ejecución, no continuar con broadcast normal
+            }
+          }
         } else {
           // Legacy: Intercambio simple de ingrediente sin completar orden
           const sanitizedIngredient = sanitizeIngredient(tradePayload.ingredient);
           await updatePlayerInventory(match_id, actor_id as number, sanitizedIngredient, -1);
         }
 
-        // Obtener estado actualizado para mostrar inventarios
-        const gameState = await getGameState(match_id);
-        console.log('\n🎮 ═══════════════════════════════════════');
-        console.log('💱 TRADE EJECUTADO');
-        console.log('═══════════════════════════════════════');
-        console.log('👤 Jugador en turno:', gameState?.current_turn === 1 ? 'PLAYER 1' : 'PLAYER 2');
-        console.log('🎯 Tipo de evento: TRADE');
-        console.log('🔢 Movimiento #:', gameState?.movement_count || 'N/A');
-        console.log('✅ Órdenes completadas:', completedOrders?.length || 0);
-        if (completedOrders && completedOrders.length > 0) {
-          console.log('🏆 Puntos totales ganados:', tradePayload.totalPoints || 0);
-          console.log('📋 Órdenes completadas:', completedOrders.map((o: any) => o.recipe || o.name).join(', '));
-          const currentOrders = (gameState?.current_turn === 1 ? gameState?.player1_order : gameState?.player2_order) || [];
-          console.log(`📝 Órdenes restantes: ${currentOrders.length}`);
-          if (currentOrders.length > 0) {
-            console.log('📝 Órdenes:', currentOrders.map((o: any) => o.name).join(', '));
-          }
-        }
-        console.log('📦 Inventario Player 1:', JSON.stringify(gameState?.player1_inventory || {}));
-        console.log('📦 Inventario Player 2:', JSON.stringify(gameState?.player2_inventory || {}));
-        console.log('═══════════════════════════════════════\n');
       }
       break;
 
@@ -314,18 +323,7 @@ async function handleGameEvent(event: IncomingGameMessage): Promise<void> {
         const isCurrentPlayer1 = actor_id === gameStateBeforeEndTurn.player1_id;
         
         // Incrementar turnos completados del jugador actual
-        const newTurnsCompleted = await incrementPlayerTurnsCompleted(match_id, actor_id as number);
-        
-        console.log('\n🎮 ═══════════════════════════════════════');
-        console.log('🔄 FIN DE TURNO');
-        console.log('═══════════════════════════════════════');
-        console.log('👤 Turno que termina:', isCurrentPlayer1 ? 'PLAYER 1' : 'PLAYER 2');
-        console.log('📈 Turnos completados:', newTurnsCompleted);
-        console.log('🎯 Tipo de evento: END_TURN');
-        console.log('🔢 Movimientos realizados:', gameStateBeforeEndTurn?.movement_count || 'N/A');
-        console.log('📦 Inventario Player 1:', JSON.stringify(gameStateBeforeEndTurn?.player1_inventory || {}));
-        console.log('📦 Inventario Player 2:', JSON.stringify(gameStateBeforeEndTurn?.player2_inventory || {}));
-        console.log('═══════════════════════════════════════\n');
+        await incrementPlayerTurnsCompleted(match_id, actor_id as number);
       }
       break;
 
@@ -344,7 +342,7 @@ async function handleGameEvent(event: IncomingGameMessage): Promise<void> {
         const gameStateTurnChanged = await getGameState(match_id);
         
         if (gameStateTurnChanged) {
-          // ⭐ AGREGAR ÓRDENES AL JUGADOR QUE INICIA SU TURNO
+          // JUGADOR QUE INICIA SU TURNO
           const currentPlayerId = newTurn === 1 ? gameStateTurnChanged.player1_id : gameStateTurnChanged.player2_id;
           const currentPlayerTurnsCompleted = newTurn === 1 ? 
             (gameStateTurnChanged.player1_turns_completed || 0) : 
@@ -353,69 +351,62 @@ async function handleGameEvent(event: IncomingGameMessage): Promise<void> {
             (gameStateTurnChanged.player1_order || []) : 
             (gameStateTurnChanged.player2_order || []);
         
-        // Calcular cuántas órdenes debe tener según sus turnos completados
+        // PASO 1: Incrementar 'turn' y aplicar penalización (en una sola operación atómica)
+        let penaltyApplied = 0;
+        if (currentPlayerOrders.length > 0) {
+          const result = await incrementOrderTurnsAndApplyPenalty(match_id, currentPlayerId);
+          penaltyApplied = result.penaltyApplied;
+        }
+        
+        // PASO 2: Calcular cuántas órdenes nuevas agregar
         const ordersToAdd = calculateOrdersToAdd(currentPlayerOrders.length, currentPlayerTurnsCompleted);
         
         if (ordersToAdd > 0) {
           const newOrders = generateUniqueOrders(ordersToAdd, currentPlayerOrders);
           await addPlayerOrders(match_id, currentPlayerId, newOrders);
-          
-          console.log('\n🎮 ═══════════════════════════════════════');
-          console.log('🔀 CAMBIO DE TURNO + ÓRDENES');
-          console.log('═══════════════════════════════════════');
-          console.log('👤 Nuevo turno:', newTurn === 1 ? 'PLAYER 1' : 'PLAYER 2');
-          console.log('📊 turnsCompleted:', currentPlayerTurnsCompleted);
-          console.log('📋 Órdenes antes:', currentPlayerOrders.length);
-          console.log(`⬆️ Órdenes agregadas: ${ordersToAdd}`);
-          console.log(`✅ Órdenes totales: ${currentPlayerOrders.length + ordersToAdd}`);
-          console.log('🎯 Nuevas órdenes:', newOrders.map(o => o.name).join(', '));
-          console.log('🎯 Tipo de evento: TURN_CHANGED');
-          console.log('🔢 Contador de movimientos reseteado a: 0');
-          console.log('📦 Inventario Player 1:', JSON.stringify(gameStateTurnChanged?.player1_inventory || {}));
-          console.log('📦 Inventario Player 2:', JSON.stringify(gameStateTurnChanged?.player2_inventory || {}));
-          console.log('═══════════════════════════════════════\n');
-          
-          // Broadcast con órdenes actualizadas
-          const updatedState = await getGameState(match_id);
-          const roomForBroadcast = await getRoomById(match_id);
-          
-          if (updatedState && roomForBroadcast) {
-            broadcastToRoom(roomForBroadcast.code, {
-              type: 'GAME_STATE_UPDATE',
-              payload: {
-                gameState: {
-                  currentTurn: updatedState.current_turn,
-                  movementCount: updatedState.movement_count || 0,
-                  player1: {
-                    id: updatedState.player1_id,
-                    score: updatedState.player1_score,
-                    inventory: updatedState.player1_inventory,
-                    orders: updatedState.player1_order,
-                    turnsCompleted: updatedState.player1_turns_completed || 0
-                  },
-                  player2: {
-                    id: updatedState.player2_id,
-                    score: updatedState.player2_score,
-                    inventory: updatedState.player2_inventory,
-                    orders: updatedState.player2_order,
-                    turnsCompleted: updatedState.player2_turns_completed || 0
-                  }
-                }
+        }
+        
+        // SIEMPRE hacer broadcast después de TURN_CHANGED (con penalización y órdenes actualizadas)
+        const updatedState = await getGameState(match_id);
+        const roomForBroadcast = await getRoomById(match_id);
+        
+        if (updatedState && roomForBroadcast) {
+          const broadcastPayload: any = {
+            gameState: {
+              currentTurn: updatedState.current_turn,
+              movementCount: updatedState.movement_count || 0,
+              player1: {
+                id: updatedState.player1_id,
+                score: updatedState.player1_score,
+                inventory: updatedState.player1_inventory,
+                orders: updatedState.player1_order,
+                turnsCompleted: updatedState.player1_turns_completed || 0
+              },
+              player2: {
+                id: updatedState.player2_id,
+                score: updatedState.player2_score,
+                inventory: updatedState.player2_inventory,
+                orders: updatedState.player2_order,
+                turnsCompleted: updatedState.player2_turns_completed || 0
               }
-            });
+            }
+          };
+          
+          // Agregar información de penalización si se aplicó
+          if (penaltyApplied > 0) {
+            const oldOrdersCount = currentPlayerOrders.filter(order => (order.turn || 1) > 2).length;
+            broadcastPayload.penalty = {
+              playerId: currentPlayerId,
+              amount: penaltyApplied,
+              ordersCount: oldOrdersCount,
+              message: `Penalización de ${penaltyApplied} puntos por ${oldOrdersCount} orden(es) antigua(s)`
+            };
           }
-        } else {
-          console.log('\n🎮 ═══════════════════════════════════════');
-          console.log('🔀 CAMBIO DE TURNO');
-          console.log('═══════════════════════════════════════');
-          console.log('👤 Nuevo turno:', newTurn === 1 ? 'PLAYER 1' : 'PLAYER 2');
-          console.log('📊 turnsCompleted:', currentPlayerTurnsCompleted);
-          console.log('✅ Jugador ya tiene suficientes órdenes:', currentPlayerOrders.length);
-          console.log('🎯 Tipo de evento: TURN_CHANGED');
-          console.log('🔢 Contador de movimientos reseteado a: 0');
-          console.log('📦 Inventario Player 1:', JSON.stringify(gameStateTurnChanged?.player1_inventory || {}));
-          console.log('📦 Inventario Player 2:', JSON.stringify(gameStateTurnChanged?.player2_inventory || {}));
-          console.log('═══════════════════════════════════════\n');
+          
+          broadcastToRoom(roomForBroadcast.code, {
+            type: 'GAME_STATE_UPDATE',
+            payload: broadcastPayload
+          });
         }
         }
       }
@@ -425,7 +416,7 @@ async function handleGameEvent(event: IncomingGameMessage): Promise<void> {
       const gameStatePayload = payload as any;
       const gameState = gameStatePayload.gameState;
       
-      // ❌ NO actualizar currentTurn aquí - se maneja con TURN_CHANGED
+      // NO actualizar currentTurn aquí - se maneja con TURN_CHANGED
       // El frontend puede enviar currentTurn desactualizado
       
       if (gameState.movementCount !== undefined) {
@@ -444,7 +435,7 @@ async function handleGameEvent(event: IncomingGameMessage): Promise<void> {
         }
       }
 
-      // ⭐ Actualizar órdenes si vienen en el payload (sistema progresivo)
+      // Actualizar órdenes si vienen en el payload (sistema progresivo)
       const roomForUpdate = await getRoomById(match_id);
       const currentGameState = await getGameState(match_id);
       
@@ -470,27 +461,6 @@ async function handleGameEvent(event: IncomingGameMessage): Promise<void> {
         );
       }
 
-      // Obtener estado actualizado para mostrar inventarios
-      const gameStateUpdate = await getGameState(match_id);
-      console.log('\n🎮 ═══════════════════════════════════════');
-      console.log('📊 ACTUALIZACIÓN DE ESTADO');
-      console.log('═══════════════════════════════════════');
-      console.log('👤 Jugador en turno:', gameStateUpdate?.current_turn === 1 ? 'PLAYER 1' : 'PLAYER 2');
-      console.log('🎯 Tipo de evento: GAME_STATE_UPDATE');
-      console.log('🔢 Movimiento #:', gameStateUpdate?.movement_count || 'N/A');
-      
-      // Logs de órdenes actualizadas
-      const p1Orders = gameStateUpdate?.player1_order?.length || 0;
-      const p2Orders = gameStateUpdate?.player2_order?.length || 0;
-      if (p1Orders > 0 || p2Orders > 0) {
-        console.log('📋 Órdenes Player 1:', p1Orders);
-        console.log('📋 Órdenes Player 2:', p2Orders);
-      }
-      
-      console.log('📦 Inventario Player 1:', JSON.stringify(gameStateUpdate?.player1_inventory || {}));
-      console.log('📦 Inventario Player 2:', JSON.stringify(gameStateUpdate?.player2_inventory || {}));
-      console.log('═══════════════════════════════════════\n');
-      
       // GAME_STATE_UPDATE ahora solo actualiza posiciones
       // El inventario se maneja con MOVE (suma) y TRADE (resta)
       // El score se maneja con TRADE
