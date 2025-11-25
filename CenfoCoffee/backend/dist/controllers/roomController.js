@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.joinRoomController = exports.getRoomByCodeController = exports.getUserRoomsController = exports.getActiveRoomsController = exports.getRoomController = exports.createRoomController = void 0;
+exports.joinRoomByCodeController = exports.joinRoomController = exports.getRoomByCodeController = exports.getUserRoomsController = exports.getActiveRoomsController = exports.getRoomController = exports.createRoomController = void 0;
 const roomService_1 = require("../services/roomService");
 const telemetryService_1 = require("../services/telemetryService");
 // HTTP handler for POST /api/rooms - creates a new game room
@@ -135,3 +135,39 @@ const joinRoomController = async (req, res) => {
     }
 };
 exports.joinRoomController = joinRoomController;
+// HTTP handler for POST /api/rooms/join-by-code - allows player to join room using code
+const joinRoomByCodeController = async (req, res) => {
+    try {
+        const { code } = req.body;
+        const userIdHeader = req.headers['x-user-id'];
+        if (!code) {
+            res.status(400).json({ error: 'code es requerido' });
+            return;
+        }
+        if (!userIdHeader) {
+            res.status(401).json({ error: 'Usuario no autenticado' });
+            return;
+        }
+        const userId = typeof userIdHeader === 'string' ? parseInt(userIdHeader) : userIdHeader;
+        // Primero obtener la sala por código
+        const existingRoom = await (0, roomService_1.getRoomByCode)(code);
+        if (!existingRoom) {
+            telemetryService_1.telemetryService.incrementEvent('room_join_not_found');
+            res.status(404).json({ error: 'Sala no encontrada con ese código' });
+            return;
+        }
+        // Unirse a la sala usando el roomId
+        const room = await (0, roomService_1.joinRoom)(existingRoom.id, userId);
+        telemetryService_1.telemetryService.incrementEvent('room_join_by_code_success');
+        res.status(200).json({
+            message: 'Te has unido a la sala exitosamente',
+            room
+        });
+    }
+    catch (error) {
+        telemetryService_1.telemetryService.incrementEvent('room_join_by_code_failed');
+        console.error('Error al unirse a la sala por código:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.joinRoomByCodeController = joinRoomByCodeController;

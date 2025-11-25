@@ -14,6 +14,7 @@ const rankingRoutes_1 = __importDefault(require("./routes/rankingRoutes"));
 const roomRoutes_1 = __importDefault(require("./routes/roomRoutes"));
 const featureFlagRoutes_1 = __importDefault(require("./routes/featureFlagRoutes"));
 const friendRoutes_1 = __importDefault(require("./routes/friendRoutes"));
+const roomInvitationRoutes_1 = __importDefault(require("./routes/roomInvitationRoutes"));
 const telemetryMiddleware_1 = require("./middleware/telemetryMiddleware");
 const http_1 = require("http");
 const ws_1 = require("ws");
@@ -45,6 +46,7 @@ app.use('/auth', authRoutes_1.default);
 app.use('/telemetry', telemetryRoutes_1.default);
 app.use('/api', rankingRoutes_1.default);
 app.use('/api', friendRoutes_1.default); // Para rutas /api/friends/*
+app.use('/api', roomInvitationRoutes_1.default); // Para rutas /api/room-invitations/*
 app.use('/api', featureFlagRoutes_1.default); // Para rutas /api/feature-flags
 app.use('/rooms', roomRoutes_1.default);
 app.use(telemetryMiddleware_1.errorTelemetryMiddleware);

@@ -8,6 +8,7 @@ import rankingRoutes from './routes/rankingRoutes';
 import roomRoutes from './routes/roomRoutes';
 import featureFlagRoutes from './routes/featureFlagRoutes';
 import friendRoutes from './routes/friendRoutes';
+import roomInvitationRoutes from './routes/roomInvitationRoutes';
 import { telemetryMiddleware, errorTelemetryMiddleware } from './middleware/telemetryMiddleware';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
@@ -44,6 +45,7 @@ app.use('/auth', authRoutes);
 app.use('/telemetry', telemetryRoutes);
 app.use('/api', rankingRoutes);
 app.use('/api', friendRoutes);     // Para rutas /api/friends/*
+app.use('/api', roomInvitationRoutes); // Para rutas /api/room-invitations/*
 app.use('/api', featureFlagRoutes); // Para rutas /api/feature-flags
 app.use('/rooms', roomRoutes);
 
