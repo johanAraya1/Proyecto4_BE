@@ -25,3 +25,33 @@ export interface CreateRoomResponse {
   message: string;
   room: Room;
 }
+
+// Respuesta de búsqueda de sala con información de membresía del usuario
+export interface RoomSearchResponse {
+  room: Room;
+  isUserInRoom: boolean;
+  userRole?: 'creator' | 'opponent';
+  isRoomFull?: boolean;
+  message?: string;
+}
+
+// Respuesta detallada de sala para el juego con información de jugadores
+export interface GameDetailsResponse {
+  success: boolean;
+  message?: string;
+  room: {
+    id: string;
+    code: string;
+    status: RoomStatus;
+    creator: {
+      id: string;
+      name: string | null;
+      elo: number | null;
+    };
+    opponent: {
+      id: string | null;
+      name: string | null;
+      elo: number | null;
+    };
+  };
+}

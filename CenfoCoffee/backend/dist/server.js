@@ -14,6 +14,7 @@ const rankingRoutes_1 = __importDefault(require("./routes/rankingRoutes"));
 const roomRoutes_1 = __importDefault(require("./routes/roomRoutes"));
 const featureFlagRoutes_1 = __importDefault(require("./routes/featureFlagRoutes"));
 const friendRoutes_1 = __importDefault(require("./routes/friendRoutes"));
+const gameRoutes_1 = __importDefault(require("./routes/gameRoutes"));
 const telemetryMiddleware_1 = require("./middleware/telemetryMiddleware");
 const http_1 = require("http");
 const ws_1 = require("ws");
@@ -37,18 +38,26 @@ const server = (0, http_1.createServer)(app);
 exports.server = server;
 const wss = new ws_1.WebSocketServer({ server, path: '/game' });
 wss.on('connection', (ws, req) => {
-    const url = new URL(req.url || '', `http://${req.headers.host}`);
-    const token = url.searchParams.get('token');
-    if (!token || token !== 'mock-token') {
-        ws.close(1008, 'Unauthorized');
-        return;
+    try {
+        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        // Extraer roomCode de la URL: /game/:roomCode
+        const pathParts = url.pathname.split('/');
+        const roomCode = pathParts[2]; // /game/ABC123 -> ABC123
+        // Extraer userId de los query params
+        const userId = url.searchParams.get('userId');
+        if (!roomCode) {
+            ws.close(1008, 'roomCode es requerido');
+            return;
+        }
+        if (!userId) {
+            ws.close(1008, 'userId es requerido');
+            return;
+        }
+        // Manejar la conexión con roomCode y userId
+        (0, gameController_1.handleGameConnection)(ws, userId, roomCode);
     }
-    (0, gameController_1.handleGameConnection)(ws, 'demo-user-id');
+    catch (error) {
+        ws.close(1011, 'Error interno del servidor');
+    }
 });
-// Export app and server for testing. When run directly, start listening.
-if (require.main === module) {
-    server.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-        console.log(`WebSocket server running on ws://localhost:${PORT}/game`);
-    });
-}
+server.listen(PORT, () => { });

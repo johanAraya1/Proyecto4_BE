@@ -8,6 +8,7 @@ import rankingRoutes from './routes/rankingRoutes';
 import roomRoutes from './routes/roomRoutes';
 import featureFlagRoutes from './routes/featureFlagRoutes';
 import friendRoutes from './routes/friendRoutes';
+import gameRoutes from './routes/gameRoutes';
 import { telemetryMiddleware, errorTelemetryMiddleware } from './middleware/telemetryMiddleware';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
@@ -23,33 +24,44 @@ app.use(telemetryMiddleware);
 app.use('/', baseRoutes);
 app.use('/auth', authRoutes);
 app.use('/telemetry', telemetryRoutes);
-app.use('/api', rankingRoutes);
-app.use('/api', friendRoutes);     // Para rutas /api/friends/*
-app.use('/api', featureFlagRoutes); // Para rutas /api/feature-flags
+app.use('/', rankingRoutes);
+app.use('/api', friendRoutes);
 app.use('/rooms', roomRoutes);
+app.use('/feature-flags', featureFlagRoutes);
+app.use('/api/game', gameRoutes);
 
 app.use(errorTelemetryMiddleware);
 
 const PORT = process.env.PORT || 3000;
 const server = createServer(app);
-const wss = new WebSocketServer({ server, path: '/game' });
+const wss = new WebSocketServer({ server }); // Sin restricción de path temporalmente
 
 wss.on('connection', (ws, req) => {
-  const url = new URL(req.url || '', `http://${req.headers.host}`);
-  const token = url.searchParams.get('token');
-  if (!token || token !== 'mock-token') {
-    ws.close(1008, 'Unauthorized');
-    return;
+  try {
+    const url = new URL(req.url || '', `http://${req.headers.host}`);
+    
+    // Extraer roomCode de la URL: /game/:roomCode
+    const pathParts = url.pathname.split('/');
+    const roomCode = pathParts[2]; // /game/ABC123 -> ABC123
+    
+    // Extraer userId de los query params
+    const userId = url.searchParams.get('userId');
+
+    if (!roomCode) {
+      ws.close(1008, 'roomCode es requerido');
+      return;
+    }
+
+    if (!userId) {
+      ws.close(1008, 'userId es requerido');
+      return;
+    }
+
+    // Manejar la conexión con roomCode y userId
+    handleGameConnection(ws, userId, roomCode);
+  } catch (error) {
+    ws.close(1011, 'Error interno del servidor');
   }
-  handleGameConnection(ws, 'demo-user-id');
 });
 
-// Export app and server for testing. When run directly, start listening.
-if (require.main === module) {
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`WebSocket server running on ws://localhost:${PORT}/game`);
-  });
-}
-
-export { app, server };
+server.listen(PORT, () => {});

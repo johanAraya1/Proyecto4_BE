@@ -87,12 +87,8 @@ export const getRoomByCode = async (code: string): Promise<Room | null> => {
     throw new Error(`Error al obtener la sala: ${roomError.message}`);
   }
 
-  console.log('Room data:', roomData);
-
   // Fetch player names from users table
   const userIds = [roomData.creator_id, roomData.opponent_id].filter(id => id !== null);
-  
-  console.log('User IDs to search:', userIds);
 
   let users: any[] = [];
   if (userIds.length > 0) {
@@ -100,9 +96,6 @@ export const getRoomByCode = async (code: string): Promise<Room | null> => {
       .from('users')
       .select('id, name')
       .in('id', userIds);
-
-    console.log('User data response:', userData);
-    console.log('User error:', userError);
 
     if (userError) {
       throw new Error(`Error al obtener usuarios: ${userError.message}`);
@@ -113,16 +106,11 @@ export const getRoomByCode = async (code: string): Promise<Room | null> => {
   const creatorUser = users.find(user => String(user.id) === String(roomData.creator_id));
   const opponentUser = users.find(user => String(user.id) === String(roomData.opponent_id));
 
-  console.log('Creator user found:', creatorUser);
-  console.log('Opponent user found:', opponentUser);
-
   const room = {
     ...roomData,
     creator_name: creatorUser?.name || null,
     opponent_name: opponentUser?.name || null
   };
-
-  console.log('Final room object:', room);
 
   return room as Room;
 };
@@ -150,11 +138,6 @@ export const joinRoom = async (roomId: string, opponentId: string | number): Pro
     }
   }
 
-  // Prevent self-join
-  if (existingRoom.creator_id === String(opponentId)) {
-    throw new Error('No puedes unirte a tu propia sala');
-  }
-
   // Atomically update room with opponent and start game
   const { data, error } = await supabase
     .from('game_rooms')
@@ -178,4 +161,62 @@ export const joinRoom = async (roomId: string, opponentId: string | number): Pro
   }
 
   return data as Room;
+};
+
+// Obtiene detalles completos de una sala para el juego incluyendo información de jugadores
+export const getGameDetailsByCode = async (code: string): Promise<any> => {
+  const { data: roomData, error: roomError } = await supabase
+    .from('game_rooms')
+    .select(`
+      id,
+      code,
+      status,
+      creator_id,
+      opponent_id,
+      creator:users!creator_id(id, name, elo),
+      opponent:users!opponent_id(id, name, elo)
+    `)
+    .eq('code', code.toUpperCase())
+    .single();
+
+  if (roomError) {
+    if (roomError.code === 'PGRST116') {
+      return null;
+    }
+    throw new Error(`Error al obtener detalles del juego: ${roomError.message}`);
+  }
+
+  const creator = Array.isArray(roomData.creator) ? roomData.creator[0] : roomData.creator;
+  const opponent = Array.isArray(roomData.opponent) ? roomData.opponent[0] : roomData.opponent;
+
+  return {
+    id: roomData.id,
+    code: roomData.code,
+    status: roomData.status,
+    creator: {
+      id: roomData.creator_id,
+      name: creator?.name || null,
+      elo: creator?.elo || null
+    },
+    opponent: {
+      id: roomData.opponent_id,
+      name: opponent?.name || null,
+      elo: opponent?.elo || null
+    }
+  };
+};
+
+// Obtiene TODAS las salas donde el usuario participa (creador u oponente) con resumen
+// Usa función RPC de PostgreSQL para mejor performance
+export const getUserRoomsWithSummary = async (userId: string | number): Promise<any> => {
+  const { data, error } = await supabase
+    .rpc('get_user_rooms_with_summary', { 
+      user_id_param: parseInt(String(userId)) 
+    });
+
+  if (error) {
+    throw new Error(`Error al obtener salas del usuario: ${error.message}`);
+  }
+
+  return data;
 };
