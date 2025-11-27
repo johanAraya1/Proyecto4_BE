@@ -12,13 +12,13 @@ import {
 // Feature flags routes - following the same pattern as authRoutes
 const router = Router();
 
-// Basic CRUD operations for feature flags
-router.post('/feature-flags', createFeatureFlagController);                    
-router.get('/feature-flags', getAllFeatureFlagsController);                    
-router.get('/feature-flags/:id', getFeatureFlagByIdController);                 
-router.get('/feature-flags/name/:name', getFeatureFlagByNameController);        
-router.put('/feature-flags/:id', updateFeatureFlagController);                  
-router.delete('/feature-flags/:id', deleteFeatureFlagController);               
-router.patch('/feature-flags/:id/toggle', toggleFeatureFlagController);         
+// Basic CRUD operations for feature flags (routes are relative to the mount path)
+router.post('/', createFeatureFlagController);                    
+router.get('/', getAllFeatureFlagsController);                    
+router.get('/:id', getFeatureFlagByIdController);                 
+router.get('/name/:name', getFeatureFlagByNameController);        
+router.put('/:id', updateFeatureFlagController);                  
+router.delete('/:id', deleteFeatureFlagController);               
+router.patch('/:id/toggle', toggleFeatureFlagController);         
 
 export default router;
