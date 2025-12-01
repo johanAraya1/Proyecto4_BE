@@ -63,7 +63,6 @@ export type EventType =
   | 'user_rooms_get_failed'
   | 'room_join_success'
   | 'room_join_failed'
-  | 'room_user_already_in_room'
   | 'feature_flag_create_success'
   | 'feature_flag_create_failed'
   | 'feature_flag_create_validation_failed'
@@ -104,4 +103,8 @@ export type EventType =
   | 'room_invitation_rejected'
   | 'room_invitation_reject_failed'
   | 'room_invitation_cancelled'
-  | 'room_invitation_cancel_failed';
+  | 'room_invitation_cancel_failed'
+  | 'room_join_not_found'
+  | 'room_join_by_code_success'
+  | 'room_join_by_code_failed'
+  | 'room_user_already_in_room';

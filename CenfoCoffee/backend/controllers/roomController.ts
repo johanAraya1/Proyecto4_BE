@@ -316,6 +316,8 @@ export const loadGameStateController = async (req: Request, res: Response): Prom
       error: 'Error al cargar estado del juego',
       message: error.message 
     });
+  }
+};
     
 // HTTP handler for POST /api/rooms/join-by-code - allows player to join room using code
 export const joinRoomByCodeController = async (req: Request, res: Response): Promise<void> => {
@@ -333,7 +335,7 @@ export const joinRoomByCodeController = async (req: Request, res: Response): Pro
       return;
     }
 
-    const userId = typeof userIdHeader === 'string' ? parseInt(userIdHeader) : userIdHeader;
+    const userId = typeof userIdHeader === 'string' ? parseInt(userIdHeader) : parseInt(userIdHeader[0]);
 
     // Primero obtener la sala por código
     const existingRoom = await getRoomByCode(code);

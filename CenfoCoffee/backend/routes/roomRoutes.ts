@@ -7,7 +7,7 @@ import {
   getRoomByCodeController,
   joinRoomController,
   getGameDetailsController,
-  loadGameStateController
+  loadGameStateController,
   joinRoomByCodeController
 } from '../controllers/roomController';
 

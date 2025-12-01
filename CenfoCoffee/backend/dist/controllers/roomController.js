@@ -33,8 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.loadGameStateController = exports.getGameDetailsController = exports.joinRoomController = exports.getRoomByCodeController = exports.getUserRoomsController = exports.getActiveRoomsController = exports.getRoomController = exports.createRoomController = void 0;
-exports.joinRoomByCodeController = exports.joinRoomController = exports.getRoomByCodeController = exports.getUserRoomsController = exports.getActiveRoomsController = exports.getRoomController = exports.createRoomController = void 0;
+exports.joinRoomByCodeController = exports.loadGameStateController = exports.getGameDetailsController = exports.joinRoomController = exports.getRoomByCodeController = exports.getUserRoomsController = exports.getActiveRoomsController = exports.getRoomController = exports.createRoomController = void 0;
 const roomService_1 = require("../services/roomService");
 const telemetryService_1 = require("../services/telemetryService");
 // HTTP handler for POST /rooms - creates a new game room
@@ -328,7 +327,7 @@ const joinRoomByCodeController = async (req, res) => {
             res.status(401).json({ error: 'Usuario no autenticado' });
             return;
         }
-        const userId = typeof userIdHeader === 'string' ? parseInt(userIdHeader) : userIdHeader;
+        const userId = typeof userIdHeader === 'string' ? parseInt(userIdHeader) : parseInt(userIdHeader[0]);
         // Primero obtener la sala por código
         const existingRoom = await (0, roomService_1.getRoomByCode)(code);
         if (!existingRoom) {

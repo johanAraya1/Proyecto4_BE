@@ -21,8 +21,6 @@ const ws_1 = require("ws");
 const gameController_1 = require("./controllers/gameController");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)());
-exports.app = app;
 // Middleware de logging para debug
 app.use((req, res, next) => {
     console.log('\n=== INCOMING REQUEST ===');
