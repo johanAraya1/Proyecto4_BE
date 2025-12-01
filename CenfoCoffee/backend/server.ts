@@ -9,6 +9,7 @@ import roomRoutes from './routes/roomRoutes';
 import featureFlagRoutes from './routes/featureFlagRoutes';
 import friendRoutes from './routes/friendRoutes';
 import gameRoutes from './routes/gameRoutes';
+import roomInvitationRoutes from './routes/roomInvitationRoutes';
 import { telemetryMiddleware, errorTelemetryMiddleware } from './middleware/telemetryMiddleware';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
@@ -17,7 +18,26 @@ import { handleGameConnection } from './controllers/gameController';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// Middleware de logging para debug
+app.use((req, res, next) => {
+  console.log('\n=== INCOMING REQUEST ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+  console.log('========================\n');
+  next();
+});
+
+// Configuración de CORS más permisiva para desarrollo
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(telemetryMiddleware);
 
@@ -26,6 +46,10 @@ app.use('/auth', authRoutes);
 app.use('/telemetry', telemetryRoutes);
 app.use('/', rankingRoutes);
 app.use('/api', friendRoutes);
+app.use('/api', rankingRoutes);
+app.use('/api', friendRoutes);     // Para rutas /api/friends/*
+app.use('/api', roomInvitationRoutes); // Para rutas /api/room-invitations/*
+app.use('/api', featureFlagRoutes); // Para rutas /api/feature-flags
 app.use('/rooms', roomRoutes);
 app.use('/feature-flags', featureFlagRoutes);
 app.use('/api/game', gameRoutes);

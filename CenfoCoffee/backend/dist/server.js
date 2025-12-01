@@ -14,6 +14,7 @@ const roomRoutes_1 = __importDefault(require("./routes/roomRoutes"));
 const featureFlagRoutes_1 = __importDefault(require("./routes/featureFlagRoutes"));
 const friendRoutes_1 = __importDefault(require("./routes/friendRoutes"));
 const gameRoutes_1 = __importDefault(require("./routes/gameRoutes"));
+const roomInvitationRoutes_1 = __importDefault(require("./routes/roomInvitationRoutes"));
 const telemetryMiddleware_1 = require("./middleware/telemetryMiddleware");
 const http_1 = require("http");
 const ws_1 = require("ws");
@@ -21,6 +22,24 @@ const gameController_1 = require("./controllers/gameController");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
+exports.app = app;
+// Middleware de logging para debug
+app.use((req, res, next) => {
+    console.log('\n=== INCOMING REQUEST ===');
+    console.log('Method:', req.method);
+    console.log('URL:', req.url);
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+    console.log('========================\n');
+    next();
+});
+// Configuración de CORS más permisiva para desarrollo
+app.use((0, cors_1.default)({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+    credentials: true
+}));
 app.use(express_1.default.json());
 app.use(telemetryMiddleware_1.telemetryMiddleware);
 app.use('/', baseRoutes_1.default);
@@ -28,6 +47,10 @@ app.use('/auth', authRoutes_1.default);
 app.use('/telemetry', telemetryRoutes_1.default);
 app.use('/', rankingRoutes_1.default);
 app.use('/api', friendRoutes_1.default);
+app.use('/api', rankingRoutes_1.default);
+app.use('/api', friendRoutes_1.default); // Para rutas /api/friends/*
+app.use('/api', roomInvitationRoutes_1.default); // Para rutas /api/room-invitations/*
+app.use('/api', featureFlagRoutes_1.default); // Para rutas /api/feature-flags
 app.use('/rooms', roomRoutes_1.default);
 app.use('/feature-flags', featureFlagRoutes_1.default);
 app.use('/api/game', gameRoutes_1.default);

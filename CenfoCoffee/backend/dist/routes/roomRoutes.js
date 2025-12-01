@@ -12,4 +12,11 @@ router.get('/:code/game-details', roomController_1.getGameDetailsController); //
 router.get('/:code/load-state', roomController_1.loadGameStateController); // GET /rooms/:code/load-state
 router.get('/:roomId', roomController_1.getRoomController); // GET /rooms/:roomId (DEBE IR AL FINAL)
 router.post('/:roomId/join', roomController_1.joinRoomController); // POST /rooms/:roomId/join
+router.post('/', roomController_1.createRoomController); // POST /api/rooms
+router.get('/', roomController_1.getActiveRoomsController); // GET /api/rooms
+router.post('/join-by-code', roomController_1.joinRoomByCodeController); // POST /api/rooms/join-by-code (ANTES de /:roomId)
+router.get('/code/:code', roomController_1.getRoomByCodeController); // GET /api/rooms/code/:code
+router.get('/user/:userId', roomController_1.getUserRoomsController); // GET /api/rooms/user/:userId
+router.get('/:roomId', roomController_1.getRoomController); // GET /api/rooms/:roomId (DESPUÉS de rutas específicas)
+router.post('/:roomId/join', roomController_1.joinRoomController); // POST /api/rooms/:roomId/join
 exports.default = router;

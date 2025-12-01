@@ -92,4 +92,16 @@ export type EventType =
   | 'friends_list_retrieved'
   | 'friends_list_retrieval_failed'
   | 'friend_removed'
-  | 'friend_removal_failed';
+  | 'friend_removal_failed'
+  | 'room_invitation_sent'
+  | 'room_invitation_send_failed'
+  | 'room_invitations_received_retrieved'
+  | 'room_invitations_received_retrieval_failed'
+  | 'room_invitations_sent_retrieved'
+  | 'room_invitations_sent_retrieval_failed'
+  | 'room_invitation_accepted'
+  | 'room_invitation_accept_failed'
+  | 'room_invitation_rejected'
+  | 'room_invitation_reject_failed'
+  | 'room_invitation_cancelled'
+  | 'room_invitation_cancel_failed';
