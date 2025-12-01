@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.server = exports.app = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -13,7 +14,6 @@ const rankingRoutes_1 = __importDefault(require("./routes/rankingRoutes"));
 const roomRoutes_1 = __importDefault(require("./routes/roomRoutes"));
 const featureFlagRoutes_1 = __importDefault(require("./routes/featureFlagRoutes"));
 const friendRoutes_1 = __importDefault(require("./routes/friendRoutes"));
-const gameRoutes_1 = __importDefault(require("./routes/gameRoutes"));
 const roomInvitationRoutes_1 = __importDefault(require("./routes/roomInvitationRoutes"));
 const telemetryMiddleware_1 = require("./middleware/telemetryMiddleware");
 const http_1 = require("http");
@@ -21,6 +21,7 @@ const ws_1 = require("ws");
 const gameController_1 = require("./controllers/gameController");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
+exports.app = app;
 // Middleware de logging para debug
 app.use((req, res, next) => {
     console.log('\n=== INCOMING REQUEST ===');
@@ -43,40 +44,29 @@ app.use(telemetryMiddleware_1.telemetryMiddleware);
 app.use('/', baseRoutes_1.default);
 app.use('/auth', authRoutes_1.default);
 app.use('/telemetry', telemetryRoutes_1.default);
-app.use('/', rankingRoutes_1.default);
-app.use('/api', friendRoutes_1.default);
 app.use('/api', rankingRoutes_1.default);
 app.use('/api', friendRoutes_1.default); // Para rutas /api/friends/*
 app.use('/api', roomInvitationRoutes_1.default); // Para rutas /api/room-invitations/*
 app.use('/api', featureFlagRoutes_1.default); // Para rutas /api/feature-flags
 app.use('/rooms', roomRoutes_1.default);
-app.use('/feature-flags', featureFlagRoutes_1.default);
-app.use('/api/game', gameRoutes_1.default);
 app.use(telemetryMiddleware_1.errorTelemetryMiddleware);
 const PORT = process.env.PORT || 3000;
 const server = (0, http_1.createServer)(app);
-const wss = new ws_1.WebSocketServer({ server }); // Sin restricción de path temporalmente
+exports.server = server;
+const wss = new ws_1.WebSocketServer({ server, path: '/game' });
 wss.on('connection', (ws, req) => {
-    try {
-        const url = new URL(req.url || '', `http://${req.headers.host}`);
-        // Extraer roomCode de la URL: /game/:roomCode
-        const pathParts = url.pathname.split('/');
-        const roomCode = pathParts[2]; // /game/ABC123 -> ABC123
-        // Extraer userId de los query params
-        const userId = url.searchParams.get('userId');
-        if (!roomCode) {
-            ws.close(1008, 'roomCode es requerido');
-            return;
-        }
-        if (!userId) {
-            ws.close(1008, 'userId es requerido');
-            return;
-        }
-        // Manejar la conexión con roomCode y userId
-        (0, gameController_1.handleGameConnection)(ws, userId, roomCode);
+    const url = new URL(req.url || '', `http://${req.headers.host}`);
+    const token = url.searchParams.get('token');
+    if (!token || token !== 'mock-token') {
+        ws.close(1008, 'Unauthorized');
+        return;
     }
-    catch (error) {
-        ws.close(1011, 'Error interno del servidor');
-    }
+    (0, gameController_1.handleGameConnection)(ws, 'demo-user-id');
 });
-server.listen(PORT, () => { });
+// Export app and server for testing. When run directly, start listening.
+if (require.main === module) {
+    server.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log(`WebSocket server running on ws://localhost:${PORT}/game`);
+    });
+}
