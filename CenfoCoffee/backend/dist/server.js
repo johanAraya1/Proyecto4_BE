@@ -45,9 +45,9 @@ app.use('/', baseRoutes_1.default);
 app.use('/auth', authRoutes_1.default);
 app.use('/telemetry', telemetryRoutes_1.default);
 app.use('/api', rankingRoutes_1.default);
-app.use('/api', friendRoutes_1.default); // Para rutas /api/friends/*
-app.use('/api', roomInvitationRoutes_1.default); // Para rutas /api/room-invitations/*
-app.use('/api', featureFlagRoutes_1.default); // Para rutas /api/feature-flags
+app.use('/api', friendRoutes_1.default);
+app.use('/api', roomInvitationRoutes_1.default);
+app.use('/api', featureFlagRoutes_1.default);
 app.use('/rooms', roomRoutes_1.default);
 app.use(telemetryMiddleware_1.errorTelemetryMiddleware);
 const PORT = process.env.PORT || 3000;
@@ -55,13 +55,27 @@ const server = (0, http_1.createServer)(app);
 exports.server = server;
 const wss = new ws_1.WebSocketServer({ server, path: '/game' });
 wss.on('connection', (ws, req) => {
-    const url = new URL(req.url || '', `http://${req.headers.host}`);
-    const token = url.searchParams.get('token');
-    if (!token || token !== 'mock-token') {
-        ws.close(1008, 'Unauthorized');
-        return;
+    try {
+        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        // Extraer roomCode de la URL: /game/:roomCode
+        const pathParts = url.pathname.split('/');
+        const roomCode = pathParts[2]; // /game/ABC123 -> ABC123
+        // Extraer userId de los query params
+        const userId = url.searchParams.get('userId');
+        if (!roomCode) {
+            ws.close(1008, 'roomCode es requerido');
+            return;
+        }
+        if (!userId) {
+            ws.close(1008, 'userId es requerido');
+            return;
+        }
+        // Manejar la conexión con roomCode y userId
+        (0, gameController_1.handleGameConnection)(ws, userId, roomCode);
     }
-    (0, gameController_1.handleGameConnection)(ws, 'demo-user-id');
+    catch (error) {
+        ws.close(1011, 'Error interno del servidor');
+    }
 });
 // Export app and server for testing. When run directly, start listening.
 if (require.main === module) {
