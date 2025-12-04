@@ -9,6 +9,7 @@ import roomRoutes from './routes/roomRoutes';
 import featureFlagRoutes from './routes/featureFlagRoutes';
 import friendRoutes from './routes/friendRoutes';
 import roomInvitationRoutes from './routes/roomInvitationRoutes';
+import gameRoutes from './routes/gameRoutes';
 import { telemetryMiddleware, errorTelemetryMiddleware } from './middleware/telemetryMiddleware';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
@@ -29,6 +30,7 @@ app.use('/api', friendRoutes);
 app.use('/api', roomInvitationRoutes);
 app.use('/api', featureFlagRoutes);
 app.use('/rooms', roomRoutes);
+app.use('/api/game', gameRoutes);
 
 app.use(errorTelemetryMiddleware);
 

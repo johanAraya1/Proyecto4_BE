@@ -12,6 +12,10 @@ const orderGenerator_1 = require("../utils/orderGenerator");
 const gameRooms = new Map();
 // Mapa de conexiones: WebSocket -> información del jugador
 const connections = new Map();
+// Mapa de timers de desconexión: userId -> NodeJS.Timeout
+const disconnectionTimers = new Map();
+// Timeout de reconexión: 60 segundos
+const RECONNECTION_TIMEOUT = 60000;
 // Función para sanitizar ingredientes (eliminar acentos, normalizar)
 function sanitizeIngredient(ingredient) {
     const ingredientMap = {
@@ -41,6 +45,12 @@ const handleGameConnection = async (ws, userId, roomCode) => {
         const room = await (0, roomService_1.getRoomByCode)(roomCode);
         if (!room) {
             ws.close(1008, 'Sala no encontrada');
+            return;
+        }
+        // Verificar si la sala ya terminó
+        if (room.status === 'finished') {
+            console.log(`⚠️ Intento de conexión a sala terminada: ${roomCode} (status: ${room.status})`);
+            ws.close(1000, 'La partida ya ha terminado');
             return;
         }
         const isCreator = String(room.creator_id) === userId;
@@ -122,17 +132,57 @@ const handleGameConnection = async (ws, userId, roomCode) => {
         }
     });
     // Manejar desconexión
-    ws.on('close', () => {
+    ws.on('close', async () => {
         const connInfo = connections.get(ws);
         if (connInfo) {
-            const { roomCode } = connInfo;
+            const { userId, roomCode } = connInfo;
+            console.log(`🔌 WebSocket cerrado para jugador ${userId} en sala ${roomCode}`);
+            // Limpiar conexión
             gameRooms.get(roomCode)?.delete(ws);
             connections.delete(ws);
             if (gameRooms.get(roomCode)?.size === 0) {
                 gameRooms.delete(roomCode);
             }
+            // Obtener la sala y verificar si hay un juego activo
+            try {
+                const room = await (0, roomService_1.getRoomByCode)(roomCode);
+                if (room) {
+                    const gameState = await (0, gameService_1.getGameState)(room.id);
+                    // Solo iniciar timer si hay un juego activo
+                    if (gameState) {
+                        console.log(`⏰ Iniciando timer de reconexión (${RECONNECTION_TIMEOUT / 1000}s) para jugador ${userId}`);
+                        // Establecer timer de 60 segundos para reconexión
+                        const timer = setTimeout(async () => {
+                            console.log(`⏰ Timeout de reconexión alcanzado para jugador ${userId}`);
+                            // Verificar nuevamente que el juego sigue activo
+                            const currentGameState = await (0, gameService_1.getGameState)(room.id);
+                            const currentRoom = await (0, roomService_1.getRoomById)(room.id);
+                            if (currentGameState && currentRoom && currentRoom.status === 'playing') {
+                                console.log(`🚪 Declarando rendición por desconexión - Jugador ${userId}`);
+                                // Procesar como rendición
+                                await handlePlayerSurrender(room.id, userId, roomCode);
+                            }
+                            else {
+                                console.log(`ℹ️ Juego ya finalizado para jugador ${userId} - no se aplica rendición`);
+                            }
+                            disconnectionTimers.delete(userId);
+                        }, RECONNECTION_TIMEOUT);
+                        disconnectionTimers.set(userId, timer);
+                    }
+                }
+            }
+            catch (error) {
+                console.error(`❌ Error al manejar desconexión:`, error);
+            }
         }
     });
+    // Cancelar timer de desconexión si el jugador se reconecta
+    const existingTimer = disconnectionTimers.get(userIdNum);
+    if (existingTimer) {
+        clearTimeout(existingTimer);
+        disconnectionTimers.delete(userIdNum);
+        console.log(`✅ Jugador ${userIdNum} reconectado - timer de desconexión cancelado`);
+    }
     // Manejar errores
     ws.on('error', (error) => {
         console.error(`❌ [WebSocket] Error de conexión:`, error);
@@ -371,8 +421,103 @@ async function handleGameEvent(event) {
                 }
             }
             break;
+        case 'PLAYER_SURRENDER':
+            try {
+                const surrenderPayload = payload;
+                const surrenderingPlayerId = surrenderPayload.playerId || actor_id;
+                // Obtener sala por match_id
+                const room = await (0, roomService_1.getRoomById)(match_id);
+                if (!room) {
+                    throw new Error('Sala no encontrada');
+                }
+                // Procesar rendición
+                await handlePlayerSurrender(match_id, Number(surrenderingPlayerId), room.code);
+            }
+            catch (error) {
+                console.error('❌ Error al procesar rendición:', error);
+            }
+            break;
         default:
             break;
+    }
+}
+// Función auxiliar para procesar la rendición de un jugador
+async function handlePlayerSurrender(matchId, surrenderingPlayerId, roomCode) {
+    try {
+        console.log(`🚪 Jugador ${surrenderingPlayerId} se ha rendido en match ${matchId}`);
+        // Obtener estado del juego
+        const gameState = await (0, gameService_1.getGameState)(matchId);
+        if (!gameState) {
+            console.log('⚠️ No hay game_state - el juego ya terminó o no se inició');
+            return;
+        }
+        // Determinar ganador y perdedor
+        const loserId = surrenderingPlayerId;
+        const winnerId = gameState.player1_id === loserId ? gameState.player2_id : gameState.player1_id;
+        // Obtener scores actuales
+        const winnerScore = winnerId === gameState.player1_id ? gameState.player1_score : gameState.player2_score;
+        const loserScore = winnerId === gameState.player1_id ? gameState.player2_score : gameState.player1_score;
+        console.log(`🎮 Match ID: ${matchId}`);
+        console.log(`🏆 Ganador: ${winnerId}, Perdedor: ${loserId}`);
+        // Calcular cambios de ELO (menos puntos por rendición que por victoria normal)
+        const eloWinner = 15; // Menos puntos por victoria por rendición
+        const eloLoser = -15; // Menos pérdida por rendirse
+        console.log(`📊 ELO Changes - Winner: +${eloWinner}, Loser: ${eloLoser}`);
+        // Actualizar ELO de ambos jugadores
+        await (0, gameService_1.updatePlayerElo)(winnerId, eloWinner);
+        await (0, gameService_1.updatePlayerElo)(loserId, eloLoser);
+        // Finalizar la sala
+        await (0, gameService_1.finishGameRoom)(matchId);
+        console.log(`✅ Partida terminada por rendición`);
+        // Cancelar cualquier timer de desconexión pendiente para ambos jugadores
+        if (disconnectionTimers.has(winnerId)) {
+            clearTimeout(disconnectionTimers.get(winnerId));
+            disconnectionTimers.delete(winnerId);
+        }
+        if (disconnectionTimers.has(loserId)) {
+            clearTimeout(disconnectionTimers.get(loserId));
+            disconnectionTimers.delete(loserId);
+        }
+        // Notificar a ambos jugadores
+        broadcastToRoom(roomCode, {
+            type: 'PLAYER_SURRENDERED',
+            payload: {
+                playerId: loserId,
+                winnerId: winnerId,
+                loserId: loserId,
+                winnerScore: winnerScore,
+                loserScore: loserScore,
+                eloChanges: {
+                    winner: eloWinner,
+                    loser: eloLoser
+                },
+                reason: 'surrender'
+            }
+        });
+        // Esperar un momento para asegurar que la DB se actualizó
+        await new Promise(resolve => setTimeout(resolve, 300));
+        // Cerrar todas las conexiones WebSocket de esta sala
+        console.log(`🔌 Cerrando conexiones WebSocket para sala ${roomCode}`);
+        const room = gameRooms.get(roomCode);
+        if (room) {
+            room.forEach(client => {
+                if (client.readyState === ws_1.WebSocket.OPEN) {
+                    client.close(1000, 'Partida terminada por rendición');
+                }
+            });
+            // Limpiar la sala del mapa
+            gameRooms.delete(roomCode);
+        }
+        // Limpiar conexiones del mapa
+        connections.forEach((value, key) => {
+            if (value.roomCode === roomCode) {
+                connections.delete(key);
+            }
+        });
+    }
+    catch (error) {
+        console.error('❌ Error al procesar rendición:', error);
+        throw error;
     }
 }
 // Envía un mensaje a todos los clientes de una sala

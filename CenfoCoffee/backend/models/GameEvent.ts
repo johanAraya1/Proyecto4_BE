@@ -7,7 +7,9 @@ export type GameEventType =
   | 'TURN_CHANGED'
   | 'GAME_STATE_UPDATE'
   | 'GAME_STARTED'
-  | 'GAME_ENDED';
+  | 'GAME_ENDED'
+  | 'PLAYER_SURRENDER'
+  | 'PLAYER_SURRENDERED';
 
 // Tipo de actor que genera el evento
 export type ActorType = 'player' | 'system';
@@ -74,6 +76,25 @@ export interface TurnChangedPayload {
   currentPlayer: number;
 }
 
+// Payload para PLAYER_SURRENDER
+export interface PlayerSurrenderPayload {
+  playerId: number;
+}
+
+// Payload para PLAYER_SURRENDERED
+export interface PlayerSurrenderedPayload {
+  playerId: number;
+  winnerId: number;
+  loserId: number;
+  winnerScore: number;
+  loserScore: number;
+  eloChanges: {
+    winner: number;
+    loser: number;
+  };
+  reason: 'surrender';
+}
+
 // Payload genérico (unión de todos los payloads)
 export type GameEventPayload = 
   | GridInitializedPayload
@@ -81,6 +102,8 @@ export type GameEventPayload =
   | TradePayload
   | EndTurnPayload
   | TurnChangedPayload
+  | PlayerSurrenderPayload
+  | PlayerSurrenderedPayload
   | Record<string, any>;
 
 // Evento de juego completo
