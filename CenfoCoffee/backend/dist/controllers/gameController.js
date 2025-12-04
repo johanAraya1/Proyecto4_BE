@@ -258,7 +258,7 @@ async function handleGameEvent(event) {
                     if (updatedGameState) {
                         const player1Score = updatedGameState.player1_score;
                         const player2Score = updatedGameState.player2_score;
-                        if (player1Score >= 100 || player2Score >= 100) {
+                        if (player1Score >= 1000 || player2Score >= 1000) {
                             const winnerId = player1Score >= player2Score ? updatedGameState.player1_id : updatedGameState.player2_id;
                             const loserId = winnerId === updatedGameState.player1_id ? updatedGameState.player2_id : updatedGameState.player1_id;
                             const winnerScore = winnerId === updatedGameState.player1_id ? player1Score : player2Score;
