@@ -41,9 +41,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.check-package.outputs.found == 'true'
-        run: |
-          npm install --legacy-peer-deps
-          chmod +x node_modules/.bin/eslint || true
+        run: npm ci --legacy-peer-deps
 
       - name: Run lint
         if: steps.check-package.outputs.found == 'true'
