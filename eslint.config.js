@@ -20,8 +20,7 @@ module.exports = [
       parser: tsparser,
       parserOptions: {
         ecmaVersion: 2022,
-        sourceType: "module",
-        project: "./CenfoCoffee/backend/tsconfig.json"
+        sourceType: "module"
       },
       globals: {
         console: "readonly",
@@ -53,10 +52,10 @@ module.exports = [
     },
     rules: {
       "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": "off",
       "no-console": "off",
       "no-undef": "off",
-      "no-case-declarations": "warn"
+      "no-case-declarations": "off"
     }
   }
 ];
