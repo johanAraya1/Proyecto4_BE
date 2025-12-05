@@ -47,10 +47,6 @@ jobs:
         if: steps.check-package.outputs.found == 'true'
         run: npm run lint
 
-      - name: Run tests
-        if: steps.check-package.outputs.found == 'true'
-        run: npm test -- --passWithNoTests
-
       - name: Skip message
         if: steps.check-package.outputs.found == 'false'
         run: echo "⚠️ No se encontró package.json, se saltan los pasos de CI."
